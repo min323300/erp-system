@@ -1,56 +1,51 @@
 // ========================================
-// API 통신 모듈 v6
-// CORS 문제 완전 해결 버전
+// ERP Lite v7 - API 통신 모듈 (안정화 버전)
+// Google Apps Script 전용 GET 방식
 // ========================================
 
-// ⚠️ 배포 후 여기에 새 Google Apps Script URL을 입력하세요
+// ⚠️ 반드시 최신 배포 URL 입력
 const API_URL = 'https://script.google.com/macros/s/AKfycbySYBcIk8HuTUq-CFGLLPuVzGcFd7LipYCcOWxY2oOGl2OITQMA8xaBcCfB1H7EouKrHg/exec';
 
+
 // ========================================
-// 기본 API 호출 함수
+// 공통 API 호출 함수 (GET 통일)
 // ========================================
 
-async function callAPI(action, data = null, method = 'GET') {
+async function callAPI(action, data = {}) {
     try {
-        let url = API_URL;
-        let options = {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
+        let url = `${API_URL}?action=${encodeURIComponent(action)}`;
 
-        if (method === 'GET' && action) {
-            url += `?action=${action}`;
-            if (data) {
-                Object.keys(data).forEach(key => {
-                    url += `&${key}=${encodeURIComponent(data[key])}`;
-                });
-            }
-        } else if (method === 'POST') {
-            options.body = JSON.stringify({
-                action: action,
-                ...data
-            });
-        }
+        // 데이터가 있으면 URL 파라미터로 추가
+        Object.keys(data).forEach(key => {
+            const value = data[key];
 
-        const response = await fetch(url, options);
-        
+            if (value !== null && value !== undefined) {
+                if (typeof value === 'object') {
+                    url += `&${key}=${encodeURIComponent(JSON.stringify(value))}`;
+                } else {
+                    url += `&${key}=${encodeURIComponent(value)}`;
+                }
+            }
+        });
+
+        const response = await fetch(url);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP 오류: ${response.status}`);
         }
-        
+
         const result = await response.json();
         return result;
-        
+
     } catch (error) {
         console.error('API 호출 실패:', error);
-        return { 
-            success: false, 
-            message: 'API 호출 중 오류가 발생했습니다: ' + error.message 
+        return {
+            success: false,
+            message: 'API 호출 오류: ' + error.message
         };
     }
 }
+
 
 // ========================================
 // 회사 정보
@@ -61,36 +56,39 @@ async function getMyCompany() {
 }
 
 async function saveMyCompany(companyData) {
-    return await callAPI('saveMyCompany', { data: companyData }, 'POST');
+    return await callAPI('saveMyCompany', { data: companyData });
 }
+
 
 // ========================================
 // 판매 관리
 // ========================================
 
 async function getSales(params = {}) {
-    return await callAPI('getSales', params, 'GET');
+    return await callAPI('getSales', params);
 }
 
 async function addSale(saleData) {
-    return await callAPI('addSale', { data: saleData }, 'POST');
+    return await callAPI('addSale', { data: saleData });
 }
 
 async function getLastPrice(company, item) {
-    return await callAPI('getLastPrice', { company, item }, 'POST');
+    return await callAPI('getLastPrice', { company, item });
 }
+
 
 // ========================================
 // 입금 관리
 // ========================================
 
 async function getPayments(params = {}) {
-    return await callAPI('getPayments', { params: params }, 'POST');
+    return await callAPI('getPayments', params);
 }
 
 async function addPayment(paymentData) {
-    return await callAPI('addPayment', { data: paymentData }, 'POST');
+    return await callAPI('addPayment', { data: paymentData });
 }
+
 
 // ========================================
 // 업체 관리
@@ -98,12 +96,13 @@ async function addPayment(paymentData) {
 
 async function getCompanies(type = null) {
     const params = type ? { type } : {};
-    return await callAPI('getCompanies', params, 'GET');
+    return await callAPI('getCompanies', params);
 }
 
 async function addCompany(companyData) {
-    return await callAPI('addCompany', { data: companyData }, 'POST');
+    return await callAPI('addCompany', { data: companyData });
 }
+
 
 // ========================================
 // 품목 관리
@@ -114,16 +113,18 @@ async function getItems() {
 }
 
 async function addItem(itemData) {
-    return await callAPI('addItem', { data: itemData }, 'POST');
+    return await callAPI('addItem', { data: itemData });
 }
+
 
 // ========================================
 // 거래명세표
 // ========================================
 
 async function generateStatement(saleIndex) {
-    return await callAPI('generateStatement', { saleIndex }, 'POST');
+    return await callAPI('generateStatement', { saleIndex });
 }
+
 
 // ========================================
 // 대시보드
@@ -133,22 +134,23 @@ async function getDashboard() {
     return await callAPI('getDashboard');
 }
 
+
 // ========================================
 // 유틸리티 함수
 // ========================================
 
 function formatCurrency(amount) {
+    if (!amount) return '0원';
     return new Intl.NumberFormat('ko-KR').format(amount) + '원';
 }
 
 function formatDate(dateString) {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}. ${day}.`;
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function showMessage(message, type = 'success') {
+function showMessage(message) {
     alert(message);
 }
 
