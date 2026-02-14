@@ -4,7 +4,7 @@
 // ========================================
 
 // ⚠️ 반드시 최신 배포 URL 입력
-const API_URL = 'https://script.google.com/macros/s/AKfycbxQeXG-L2ofaW7PYTTvgWAprCAt-0zKs-ZnbiFNZRCQlrpyiqkn9-YuU0P-YoUQVH_xbg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyTW_UenWQKN7-qyiDvvh49Q-jnfNADfX1tVGHoJSroSOKnAr6ZH6LvtO8dky4cIozZRg/exec';
 
 
 // ========================================
