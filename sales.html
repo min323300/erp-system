@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>판매 관리 - 거래명세 관리 시스템</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="index.html">거래명세 관리 시스템</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">대시보드</a></li>
+                <li><a href="sales.html" class="active">판매</a></li>
+                <li><a href="purchase.html">입고</a></li>
+                <li><a href="inventory.html">재고</a></li>
+                <li><a href="accounting.html">회계</a></li>
+                <li><a href="settings.html">설정</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">판매 관리</h1>
+            </div>
+
+            <!-- 탭 메뉴 -->
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('sales')">판매 등록</button>
+                <button class="tab-button" onclick="switchTab('payments')">입금 등록</button>
+            </div>
+
+            <!-- 판매 등록 탭 -->
+            <div id="sales-tab" class="tab-content active">
+                <section class="card">
+                    <h2>새 판매 등록</h2>
+                    <form id="sales-form" onsubmit="handleSubmit(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sale-date">판매일 *</label>
+                                <input type="date" id="sale-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sale-company">거래처 *</label>
+                                <select id="sale-company" required onchange="updatePriceOnCompanyChange()">
+                                    <option value="">선택하세요</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sale-item">품목 *</label>
+                                <select id="sale-item" required onchange="updatePriceOnItemChange()">
+                                    <option value="">선택하세요</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sale-quantity">수량 *</label>
+                                <input type="number" id="sale-quantity" required oninput="calculateTotal()">
+                            </div>
+                            <div class="form-group">
+                                <label for="sale-price">단가 *</label>
+                                <input type="number" id="sale-price" required oninput="calculateTotal()">
+                                <small id="price-hint" class="text-muted"></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="vat-included">부가세</label>
+                                <select id="vat-included" onchange="calculateTotal()">
+                                    <option value="true">포함</option>
+                                    <option value="false">별도</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="supply-price">공급가</label>
+                                <input type="text" id="supply-price" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="vat">부가세</label>
+                                <input type="text" id="vat" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="total">합계</label>
+                                <input type="text" id="total" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="paid-status">입금여부</label>
+                                <select id="paid-status" onchange="togglePaidAmount()">
+                                    <option value="미입금">미입금</option>
+                                    <option value="부분입금">부분입금</option>
+                                    <option value="완료">완료</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="paid-amount">입금액</label>
+                                <input type="number" id="paid-amount" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="delivery-method">배송방식</label>
+                                <select id="delivery-method">
+                                    <option value="오프라인">🚗 오프라인 배송 (직접 전달)</option>
+                                    <option value="택배">📦 택배 배송 (우편 발송)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">판매 등록</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">초기화</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 판매 내역 -->
+                <section class="card">
+                    <h2>판매 내역</h2>
+                    
+                    <div class="filter-section">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="filter-company">거래처</label>
+                                <select id="filter-company">
+                                    <option value="">전체</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-start">시작일</label>
+                                <input type="date" id="filter-start">
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-end">종료일</label>
+                                <input type="date" id="filter-end">
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="loadSales()">조회</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="sales-table">
+                            <thead>
+                                <tr>
+                                    <th>날짜</th>
+                                    <th>거래처</th>
+                                    <th>품목</th>
+                                    <th>수량</th>
+                                    <th>단가</th>
+                                    <th>공급가</th>
+                                    <th>부가세</th>
+                                    <th>합계</th>
+                                    <th>입금여부</th>
+                                    <th>당일미수금</th>
+                                    <th>거래처총미수금</th>
+                                    <th>배송방식</th>
+                                    <th>작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-tbody">
+                                <!-- 동적으로 생성됨 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 입금 등록 탭 -->
+            <div id="payments-tab" class="tab-content">
+                <section class="card">
+                    <h2>입금 등록</h2>
+                    <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="payment-date">입금일 *</label>
+                                <input type="date" id="payment-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="payment-company">거래처 *</label>
+                                <select id="payment-company" required>
+                                    <option value="">선택하세요</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="payment-amount">입금액 *</label>
+                                <input type="number" id="payment-amount" required placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="payment-method">입금방법</label>
+                                <select id="payment-method">
+                                    <option value="계좌이체">계좌이체</option>
+                                    <option value="현금">현금</option>
+                                    <option value="카드">카드</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="payment-note">비고</label>
+                            <textarea id="payment-note" rows="3" placeholder="입금 관련 메모를 입력하세요"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">입금 등록</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetPaymentForm()">초기화</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 입금 내역 -->
+                <section class="card">
+                    <h2>입금 내역</h2>
+                    
+                    <div class="filter-section">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="payment-filter-company">거래처</label>
+                                <select id="payment-filter-company">
+                                    <option value="">전체</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="payment-filter-start">시작일</label>
+                                <input type="date" id="payment-filter-start">
+                            </div>
+                            <div class="form-group">
+                                <label for="payment-filter-end">종료일</label>
+                                <input type="date" id="payment-filter-end">
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="loadPayments()">조회</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="payments-table">
+                            <thead>
+                                <tr>
+                                    <th>입금일</th>
+                                    <th>거래처</th>
+                                    <th>입금액</th>
+                                    <th>입금방법</th>
+                                    <th>비고</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-tbody">
+                                <!-- 동적으로 생성됨 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 캐시 문제 해결을 위해 버전 파라미터 추가 -->
+    <script src="api.js?v=20260214"></script>
+    <script>
+        // 탭 전환
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (tabName === 'sales') {
+                document.getElementById('sales-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[0].classList.add('active');
+                loadSales();
+            } else if (tabName === 'payments') {
+                document.getElementById('payments-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[1].classList.add('active');
+                loadPayments();
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            setTodayDate();
+            await loadCompanies();
+            await loadItems();
+            await loadSales();
+        });
+
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sale-date').value = today;
+            document.getElementById('payment-date').value = today;
+        }
+
+        async function loadCompanies() {
+            const result = await getCompanies();
+            if (result.success && result.data.length > 0) {
+                const salesSelect = document.getElementById('sale-company');
+                const filterSelect = document.getElementById('filter-company');
+                const paymentSelect = document.getElementById('payment-company');
+                const paymentFilterSelect = document.getElementById('payment-filter-company');
+                
+                [salesSelect, paymentSelect].forEach(select => {
+                    select.innerHTML = '<option value="">선택하세요</option>';
+                    result.data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.name;
+                        option.textContent = company.name;
+                        select.appendChild(option);
+                    });
+                });
+
+                [filterSelect, paymentFilterSelect].forEach(select => {
+                    select.innerHTML = '<option value="">전체</option>';
+                    result.data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.name;
+                        option.textContent = company.name;
+                        select.appendChild(option);
+                    });
+                });
+            }
+        }
+
+        async function loadItems() {
+            const result = await getItems();
+            if (result.success && result.data.length > 0) {
+                const select = document.getElementById('sale-item');
+                select.innerHTML = '<option value="">선택하세요</option>';
+                result.data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.name;
+                    option.dataset.price = item.price;
+                    option.textContent = `${item.name} (${formatCurrency(item.price)})`;
+                    select.appendChild(option);
+                });
+            }
+        }
+
+        async function updatePriceOnCompanyChange() {
+            const item = document.getElementById('sale-item').value;
+            if (item) {
+                await updateLastPrice();
+            }
+        }
+
+        async function updatePriceOnItemChange() {
+            await updateLastPrice();
+        }
+
+        async function updateLastPrice() {
+            const company = document.getElementById('sale-company').value;
+            const item = document.getElementById('sale-item').value;
+            const priceInput = document.getElementById('sale-price');
+            const priceHint = document.getElementById('price-hint');
+
+            if (!company || !item) return;
+
+            try {
+                const result = await getLastPrice(company, item);
+
+                if (result.success && result.data.price) {
+                    priceInput.value = result.data.price;
+                    priceHint.textContent = `💡 최근 거래 가격: ${formatCurrency(result.data.price)}`;
+                    priceHint.style.color = '#28a745';
+                } else {
+                    const selectedOption = document.getElementById('sale-item').selectedOptions[0];
+                    if (selectedOption) {
+                        const defaultPrice = selectedOption.dataset.price;
+                        priceInput.value = defaultPrice;
+                        priceHint.textContent = `💡 품목 기본 단가: ${formatCurrency(defaultPrice)}`;
+                        priceHint.style.color = '#6c757d';
+                    }
+                }
+
+                calculateTotal();
+            } catch (error) {
+                console.error('가격 조회 오류:', error);
+            }
+        }
+
+        function calculateTotal() {
+            const quantity = Number(document.getElementById('sale-quantity').value) || 0;
+            const price = Number(document.getElementById('sale-price').value) || 0;
+            const vatIncluded = document.getElementById('vat-included').value === 'true';
+
+            let supplyPrice, vat, total;
+
+            if (vatIncluded) {
+                total = quantity * price;
+                supplyPrice = Math.round(total / 1.1);
+                vat = total - supplyPrice;
+            } else {
+                supplyPrice = quantity * price;
+                vat = Math.round(supplyPrice * 0.1);
+                total = supplyPrice + vat;
+            }
+
+            document.getElementById('supply-price').value = formatCurrency(supplyPrice);
+            document.getElementById('vat').value = formatCurrency(vat);
+            document.getElementById('total').value = formatCurrency(total);
+        }
+
+        function togglePaidAmount() {
+            const status = document.getElementById('paid-status').value;
+            const paidAmountInput = document.getElementById('paid-amount');
+
+            if (status === '완료') {
+                const total = document.getElementById('total').value.replace(/[^0-9]/g, '');
+                paidAmountInput.value = total;
+            } else if (status === '미입금') {
+                paidAmountInput.value = 0;
+            }
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const quantity = Number(document.getElementById('sale-quantity').value);
+            const price = Number(document.getElementById('sale-price').value);
+            const vatIncluded = document.getElementById('vat-included').value === 'true';
+
+            let supplyPrice, vat, total;
+
+            if (vatIncluded) {
+                total = quantity * price;
+                supplyPrice = Math.round(total / 1.1);
+                vat = total - supplyPrice;
+            } else {
+                supplyPrice = quantity * price;
+                vat = Math.round(supplyPrice * 0.1);
+                total = supplyPrice + vat;
+            }
+
+            const paidAmount = Number(document.getElementById('paid-amount').value) || 0;
+            const receivable = total - paidAmount;
+
+            const formData = {
+                date: document.getElementById('sale-date').value,
+                company: document.getElementById('sale-company').value,
+                item: document.getElementById('sale-item').value,
+                quantity: quantity,
+                price: price,
+                supplyPrice: supplyPrice,
+                vat: vat,
+                total: total,
+                paid: document.getElementById('paid-status').value,
+                paidAmount: paidAmount,
+                receivable: receivable,
+                deliveryMethod: document.getElementById('delivery-method').value
+            };
+
+            const result = await addSale(formData);
+
+            if (result.success) {
+                showMessage('판매가 등록되었습니다.', 'success');
+                resetForm();
+                await loadSales();
+            } else {
+                showMessage(result.message || '판매 등록에 실패했습니다.', 'danger');
+            }
+        }
+
+        async function handlePaymentSubmit(e) {
+            e.preventDefault();
+
+            const formData = {
+                date: document.getElementById('payment-date').value,
+                company: document.getElementById('payment-company').value,
+                amount: Number(document.getElementById('payment-amount').value),
+                method: document.getElementById('payment-method').value,
+                note: document.getElementById('payment-note').value || ''
+            };
+
+            try {
+                const result = await addPayment(formData);
+
+                if (result.success) {
+                    showMessage('입금이 등록되었습니다.', 'success');
+                    resetPaymentForm();
+                    await loadPayments();
+                    await loadSales();
+                } else {
+                    showMessage(result.message || '입금 등록에 실패했습니다.', 'danger');
+                }
+            } catch (error) {
+                showMessage('입금 등록 중 오류가 발생했습니다.', 'danger');
+                console.error(error);
+            }
+        }
+
+        async function loadPayments() {
+            const tbody = document.getElementById('payments-tbody');
+            showLoading(tbody);
+
+            const params = {};
+            const company = document.getElementById('payment-filter-company').value;
+            const startDate = document.getElementById('payment-filter-start').value;
+            const endDate = document.getElementById('payment-filter-end').value;
+
+            if (company) params.company = company;
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
+
+            try {
+                const result = await getPayments(params);
+
+                if (result.success) {
+                    if (result.data.length === 0) {
+                        showEmpty(tbody, '입금 내역이 없습니다');
+                        return;
+                    }
+
+                    let html = '';
+                    result.data.forEach(payment => {
+                        html += `
+                            <tr>
+                                <td>${formatDate(payment.date)}</td>
+                                <td>${payment.company}</td>
+                                <td class="text-right"><strong>${formatCurrency(payment.amount)}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge badge-info">${payment.method}</span>
+                                </td>
+                                <td>${payment.note || '-'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tbody.innerHTML = html;
+                } else {
+                    showMessage('입금 내역을 불러올 수 없습니다.', 'danger');
+                }
+            } catch (error) {
+                showMessage('입금 내역 조회 중 오류가 발생했습니다.', 'danger');
+                console.error(error);
+            }
+        }
+
+        async function loadSales() {
+            const tbody = document.getElementById('sales-tbody');
+            showLoading(tbody);
+            
+            const params = {};
+            const company = document.getElementById('filter-company').value;
+            const startDate = document.getElementById('filter-start').value;
+            const endDate = document.getElementById('filter-end').value;
+            
+            if (company) params.company = company;
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
+            
+            const result = await getSales(params);
+            
+            if (result.success) {
+                if (result.data.length === 0) {
+                    showEmpty(tbody, '판매 내역이 없습니다');
+                    return;
+                }
+                
+                let html = '';
+                result.data.forEach((sale, index) => {
+                    let totalReceivableClass = 'badge-success';
+                    if (sale.companyTotalReceivable > 100000) {
+                        totalReceivableClass = 'badge-danger';
+                    } else if (sale.companyTotalReceivable > 0) {
+                        totalReceivableClass = 'badge-warning';
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td>${formatDate(sale.date)}</td>
+                            <td>${sale.company}</td>
+                            <td>${sale.item}</td>
+                            <td class="text-right">${sale.quantity}</td>
+                            <td class="text-right">${formatCurrency(sale.price)}</td>
+                            <td class="text-right">${formatCurrency(sale.supplyPrice)}</td>
+                            <td class="text-right">${formatCurrency(sale.vat)}</td>
+                            <td class="text-right"><strong>${formatCurrency(sale.total)}</strong></td>
+                            <td class="text-center">
+                                <span class="badge ${sale.paid === '완료' ? 'badge-success' : 'badge-warning'}">
+                                    ${sale.paid}
+                                </span>
+                            </td>
+                            <td class="text-right ${sale.receivable > 0 ? 'text-danger' : ''}">
+                                ${formatCurrency(sale.receivable)}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge ${totalReceivableClass}" style="font-weight: bold; font-size: 0.9em;">
+                                    ${formatCurrency(sale.companyTotalReceivable)}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge ${sale.deliveryMethod === '택배' ? 'badge-info' : 'badge-secondary'}">
+                                    ${sale.deliveryMethod === '택배' ? '📦 택배' : '🚗 오프라인'}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-danger btn-sm" onclick="printStatement(${index})">
+                                    📄 명세표
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+            } else {
+                showMessage('판매 내역을 불러올 수 없습니다.', 'danger');
+            }
+        }
+        
+        async function printStatement(index) {
+            try {
+                const result = await generateStatement(index);
+
+                if (result.success) {
+                    alert('거래명세표가 생성되었습니다.\n\nGoogle Sheets의 "거래명세표" 시트를 확인하세요.\n파일 > 인쇄 (Ctrl+P)로 PDF 저장 또는 인쇄가 가능합니다.');
+                } else {
+                    alert('거래명세표 생성 실패: ' + (result.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('거래명세표 생성 중 오류가 발생했습니다.');
+                console.error(error);
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('sales-form').reset();
+            setTodayDate();
+            document.getElementById('sale-price').value = '';
+            document.getElementById('supply-price').value = '';
+            document.getElementById('vat').value = '';
+            document.getElementById('total').value = '';
+            document.getElementById('price-hint').textContent = '';
+        }
+
+        function resetPaymentForm() {
+            document.getElementById('payment-form').reset();
+            setTodayDate();
+        }
+    </script>
+
+    <style>
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab-button:hover {
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .tab-button.active {
+            color: #1976d2;
+            border-bottom-color: #1976d2;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #price-hint {
+            display: block;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            resize: vertical;
+        }
+    </style>
+</body>
+</html>

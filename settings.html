@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>설정 - 거래명세 관리 시스템</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="index.html">거래명세 관리 시스템</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">대시보드</a></li>
+                <li><a href="sales.html">판매</a></li>
+                <li><a href="purchase.html">입고</a></li>
+                <li><a href="inventory.html">재고</a></li>
+                <li><a href="accounting.html">회계</a></li>
+                <li><a href="settings.html" class="active">설정</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">설정</h1>
+            </div>
+
+            <!-- 회사 정보 -->
+            <section class="card">
+                <h2>회사 정보</h2>
+                <form id="company-form" onsubmit="handleCompanySubmit(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="company-name">회사명 *</label>
+                            <input type="text" id="company-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="business-number">사업자번호</label>
+                            <input type="text" id="business-number">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ceo">대표자</label>
+                            <input type="text" id="ceo">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">전화번호</label>
+                            <input type="tel" id="phone">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="address">주소</label>
+                            <input type="text" id="address">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">이메일</label>
+                            <input type="email" id="email">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">저장</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 업체 관리 -->
+            <section class="card">
+                <h2>업체 관리</h2>
+                <form id="vendor-form" onsubmit="handleVendorSubmit(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendor-name">업체명 *</label>
+                            <input type="text" id="vendor-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendor-type">구분 *</label>
+                            <select id="vendor-type" required>
+                                <option value="거래처">거래처</option>
+                                <option value="공급업체">공급업체</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendor-business-number">사업자번호</label>
+                            <input type="text" id="vendor-business-number">
+                        </div>
+                        <div class="form-group">
+                            <label for="vendor-ceo">대표자</label>
+                            <input type="text" id="vendor-ceo">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vendor-phone">연락처</label>
+                            <input type="tel" id="vendor-phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="vendor-address">주소</label>
+                            <input type="text" id="vendor-address">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">업체 추가</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetVendorForm()">초기화</button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>업체명</th>
+                                <th>구분</th>
+                                <th>사업자번호</th>
+                                <th>대표자</th>
+                                <th>연락처</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendors-tbody">
+                            <!-- 동적으로 생성됨 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 품목 관리 -->
+            <section class="card">
+                <h2>품목 관리</h2>
+                <form id="item-form" onsubmit="handleItemSubmit(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-name">품목명 *</label>
+                            <input type="text" id="item-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-unit">단위</label>
+                            <input type="text" id="item-unit" value="개">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-price">기본단가 *</label>
+                            <input type="number" id="item-price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-note">비고</label>
+                            <input type="text" id="item-note">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">품목 추가</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetItemForm()">초기화</button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>품목명</th>
+                                <th>단위</th>
+                                <th>기본단가</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            <!-- 동적으로 생성됨 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadCompanyInfo();
+            await loadVendors();
+            await loadItems();
+        });
+
+        async function loadCompanyInfo() {
+            const result = await getMyCompany();
+            if (result.success && result.data) {
+                document.getElementById('company-name').value = result.data.name || '';
+                document.getElementById('business-number').value = result.data.businessNumber || '';
+                document.getElementById('ceo').value = result.data.ceo || '';
+                document.getElementById('phone').value = result.data.phone || '';
+                document.getElementById('address').value = result.data.address || '';
+                document.getElementById('email').value = result.data.email || '';
+            }
+        }
+
+        async function handleCompanySubmit(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('company-name').value,
+                businessNumber: document.getElementById('business-number').value,
+                ceo: document.getElementById('ceo').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                email: document.getElementById('email').value
+            };
+
+            const result = await saveMyCompany(formData);
+            if (result.success) {
+                alert('회사 정보가 저장되었습니다.');
+            } else {
+                alert('저장 실패: ' + result.message);
+            }
+        }
+
+        async function loadVendors() {
+            const tbody = document.getElementById('vendors-tbody');
+            const result = await getCompanies();
+            
+            if (result.success && result.data.length > 0) {
+                let html = '';
+                result.data.forEach(vendor => {
+                    html += `
+                        <tr>
+                            <td>${vendor.name}</td>
+                            <td><span class="badge badge-info">${vendor.type}</span></td>
+                            <td>${vendor.businessNumber || '-'}</td>
+                            <td>${vendor.ceo || '-'}</td>
+                            <td>${vendor.phone || '-'}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">등록된 업체가 없습니다</td></tr>';
+            }
+        }
+
+        async function handleVendorSubmit(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('vendor-name').value,
+                type: document.getElementById('vendor-type').value,
+                businessNumber: document.getElementById('vendor-business-number').value,
+                ceo: document.getElementById('vendor-ceo').value,
+                phone: document.getElementById('vendor-phone').value,
+                address: document.getElementById('vendor-address').value
+            };
+
+            const result = await addCompany(formData);
+            if (result.success) {
+                alert('업체가 추가되었습니다.');
+                resetVendorForm();
+                await loadVendors();
+            } else {
+                alert('추가 실패: ' + result.message);
+            }
+        }
+
+        function resetVendorForm() {
+            document.getElementById('vendor-form').reset();
+        }
+
+        async function loadItems() {
+            const tbody = document.getElementById('items-tbody');
+            const result = await getItems();
+            
+            if (result.success && result.data.length > 0) {
+                let html = '';
+                result.data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td class="text-center">${item.unit}</td>
+                            <td class="text-right">${formatCurrency(item.price)}</td>
+                            <td>${item.note || '-'}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">등록된 품목이 없습니다</td></tr>';
+            }
+        }
+
+        async function handleItemSubmit(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('item-name').value,
+                unit: document.getElementById('item-unit').value,
+                price: Number(document.getElementById('item-price').value),
+                note: document.getElementById('item-note').value
+            };
+
+            const result = await addItem(formData);
+            if (result.success) {
+                alert('품목이 추가되었습니다.');
+                resetItemForm();
+                await loadItems();
+            } else {
+                alert('추가 실패: ' + result.message);
+            }
+        }
+
+        function resetItemForm() {
+            document.getElementById('item-form').reset();
+            document.getElementById('item-unit').value = '개';
+        }
+    </script>
+</body>
+</html>
