@@ -4,7 +4,7 @@
 // ========================================
 
 // ⚠️ 배포 후 여기에 새 Google Apps Script URL을 입력하세요
-const API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_URL_HERE/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbySYBcIk8HuTUq-CFGLLPuVzGcFd7LipYCcOWxY2oOGl2OITQMA8xaBcCfB1H7EouKrHg/exec';
 
 // ========================================
 // 기본 API 호출 함수
