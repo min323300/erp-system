@@ -127,6 +127,47 @@ async function generateStatement(saleIndex) {
 
 
 // ========================================
+// 입고 관리
+// ========================================
+
+async function getPurchases(params = {}) {
+    return await callAPI('getPurchases', params);
+}
+
+async function addPurchase(purchaseData) {
+    return await callAPI('addPurchase', { data: purchaseData });
+}
+
+
+// ========================================
+// 재고 관리
+// ========================================
+
+async function getInventory() {
+    return await callAPI('getInventory');
+}
+
+
+// ========================================
+// 회계 관리
+// ========================================
+
+async function getMonthlyReport(year, month) {
+    const params = {};
+    if (year) params.year = year;
+    if (month) params.month = month;
+    return await callAPI('getMonthlyReport', params);
+}
+
+async function getProfitLoss(startDate, endDate) {
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    return await callAPI('getProfitLoss', params);
+}
+
+
+// ========================================
 // 대시보드
 // ========================================
 
