@@ -70,6 +70,13 @@
                                     <option value="택배">📦 택배 배송</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="sale-box-return">공박스회수</label>
+                                <select id="sale-box-return">
+                                    <option value="미회수">미회수</option>
+                                    <option value="회수">회수</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -402,6 +409,12 @@
                         <input type="text" class="item-total" readonly>
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>이력번호</label>
+                        <input type="text" class="item-trace-number" placeholder="012345678901" maxlength="20">
+                    </div>
+                </div>
             `;
             
             container.appendChild(itemRow);
@@ -516,6 +529,7 @@
             const date = document.getElementById('sale-date').value;
             const paidStatus = document.getElementById('sale-paid-status').value;
             const deliveryMethod = document.getElementById('sale-delivery-method').value;
+            const boxReturn = document.getElementById('sale-box-return').value;
             
             if (!company || !date) {
                 alert('판매일과 거래처를 선택해주세요.');
@@ -535,6 +549,7 @@
                 const itemSelect = row.querySelector('.item-select');
                 const quantity = Number(row.querySelector('.item-quantity').value);
                 const price = Number(row.querySelector('.item-price').value);
+                const traceNumber = row.querySelector('.item-trace-number').value;
                 
                 if (!itemSelect.value || !quantity || !price) {
                     hasError = true;
@@ -567,7 +582,9 @@
                     paid: paidStatus,
                     paidAmount: paidStatus === '완료' ? total : 0,
                     receivable: paidStatus === '완료' ? 0 : total,
-                    deliveryMethod: deliveryMethod
+                    deliveryMethod: deliveryMethod,
+                    traceNumber: traceNumber || '',
+                    boxReturn: boxReturn
                 });
             });
             
@@ -603,6 +620,7 @@
             document.getElementById('sale-company').value = '';
             document.getElementById('sale-paid-status').value = '미입금';
             document.getElementById('sale-delivery-method').value = '오프라인';
+            document.getElementById('sale-box-return').value = '미회수';
             
             document.getElementById('items-container').innerHTML = '';
             itemCounter = 0;
