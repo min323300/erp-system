@@ -171,6 +171,11 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- 모바일 카드 뷰 -->
+                    <div class="mobile-sales-list" id="mobile-sales-list">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
                 </section>
             </div>
 
@@ -551,6 +556,7 @@
 
         async function loadSales() {
             const tbody = document.getElementById('sales-tbody');
+            const mobileList = document.getElementById('mobile-sales-list');
             showLoading(tbody);
             
             const params = {};
@@ -567,10 +573,13 @@
             if (result.success) {
                 if (result.data.length === 0) {
                     showEmpty(tbody, '판매 내역이 없습니다');
+                    mobileList.innerHTML = '<div class="mobile-sale-card" style="text-align:center; color:#999;">판매 내역이 없습니다</div>';
                     return;
                 }
                 
-                let html = '';
+                let tableHtml = '';
+                let mobileHtml = '';
+                
                 result.data.forEach((sale, index) => {
                     let totalReceivableClass = 'badge-success';
                     if (sale.companyTotalReceivable > 100000) {
@@ -579,7 +588,8 @@
                         totalReceivableClass = 'badge-warning';
                     }
                     
-                    html += `
+                    // 테이블 HTML (데스크톱)
+                    tableHtml += `
                         <tr>
                             <td>${formatDate(sale.date)}</td>
                             <td>${sale.company}</td>
@@ -614,9 +624,64 @@
                             </td>
                         </tr>
                     `;
+                    
+                    // 모바일 카드 HTML
+                    mobileHtml += `
+                        <div class="mobile-sale-card">
+                            <div class="mobile-sale-header">
+                                <div>
+                                    <div class="mobile-sale-date">${formatDate(sale.date)}</div>
+                                    <div class="mobile-sale-company">${sale.company}</div>
+                                </div>
+                                <span class="badge ${sale.paid === '완료' ? 'badge-success' : sale.paid === '부분입금' ? 'badge-warning' : 'badge-danger'}">
+                                    ${sale.paid}
+                                </span>
+                            </div>
+                            
+                            <div class="mobile-sale-info">
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">품목</span>
+                                    <span class="mobile-sale-value">${sale.item}</span>
+                                </div>
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">수량 × 단가</span>
+                                    <span class="mobile-sale-value">${sale.quantity} × ${formatCurrency(sale.price)}</span>
+                                </div>
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">합계</span>
+                                    <span class="mobile-sale-total">${formatCurrency(sale.total)}</span>
+                                </div>
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">당일 미수금</span>
+                                    <span class="mobile-sale-value" style="color: ${sale.receivable > 0 ? '#d32f2f' : '#2e7d32'}; font-weight: bold;">
+                                        ${formatCurrency(sale.receivable)}
+                                    </span>
+                                </div>
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">거래처 총미수금</span>
+                                    <span class="mobile-sale-value" style="color: ${sale.companyTotalReceivable > 0 ? '#d32f2f' : '#2e7d32'}; font-weight: bold;">
+                                        ${formatCurrency(sale.companyTotalReceivable)}
+                                    </span>
+                                </div>
+                                <div class="mobile-sale-row">
+                                    <span class="mobile-sale-label">배송방식</span>
+                                    <span class="badge ${sale.deliveryMethod === '택배' ? 'badge-info' : 'badge-secondary'}">
+                                        ${sale.deliveryMethod === '택배' ? '📦 택배' : '🚗 오프라인'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="mobile-sale-actions">
+                                <button class="btn btn-danger btn-sm" onclick="printStatement(${index})" style="width: 100%;">
+                                    📄 거래명세표 생성
+                                </button>
+                            </div>
+                        </div>
+                    `;
                 });
                 
-                tbody.innerHTML = html;
+                tbody.innerHTML = tableHtml;
+                mobileList.innerHTML = mobileHtml;
             } else {
                 showMessage('판매 내역을 불러올 수 없습니다.', 'danger');
             }
