@@ -65,6 +65,22 @@
 
                     <div class="form-row">
                         <div class="form-group">
+                            <label>부가세 계산 방식 *</label>
+                            <div style="display: flex; gap: 20px; margin-top: 8px;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="tax-type" value="included" checked style="margin-right: 8px;">
+                                    부가세 포함
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="tax-type" value="excluded" style="margin-right: 8px;">
+                                    부가세 별도
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="sale-payment-status">입금여부</label>
                             <select id="sale-payment-status">
                                 <option value="미입금">미입금</option>
@@ -319,6 +335,9 @@
             const boxReturn = document.getElementById('sale-box-return').value;
             const paymentStatus = document.getElementById('sale-payment-status').value;
             const paymentAmount = Number(document.getElementById('sale-payment-amount').value);
+            
+            // 부가세 계산 방식 가져오기
+            const taxType = document.querySelector('input[name="tax-type"]:checked').value;
 
             const itemRows = document.querySelectorAll('.item-row');
             const sales = [];
@@ -330,21 +349,32 @@
                 const traceNumber = row.querySelector('.item-trace-number').value || '';
 
                 if (itemName && quantity > 0 && price > 0) {
-                    const supplyPrice = Math.round(price / 1.1);
-                    const vat = price - supplyPrice;
+                    let supplyPrice, vat, total;
+                    
+                    if (taxType === 'included') {
+                        // 부가세 포함: 입력가격이 최종가격
+                        total = price;
+                        supplyPrice = Math.round(price / 1.1);
+                        vat = price - supplyPrice;
+                    } else {
+                        // 부가세 별도: 입력가격이 공급가액
+                        supplyPrice = price;
+                        vat = Math.round(price * 0.1);
+                        total = price + vat;
+                    }
 
                     sales.push({
                         date: date,
                         customer: customer,
                         item: itemName,
                         quantity: quantity,
-                        price: price,
+                        price: total,  // 합계 금액
                         supplyPrice: supplyPrice,
                         vat: vat,
-                        total: price,
+                        total: total,
                         paymentStatus: paymentStatus,
                         paymentAmount: paymentAmount,
-                        unpaid: price - paymentAmount,
+                        unpaid: total - paymentAmount,
                         delivery: delivery,
                         traceNumber: traceNumber,
                         boxReturn: boxReturn
@@ -382,6 +412,9 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('sale-date').value = today;
             
+            // 부가세 포함 기본 선택
+            document.querySelector('input[name="tax-type"][value="included"]').checked = true;
+            
             // 품목 행 초기화 (첫 번째만 남기기)
             const container = document.getElementById('items-container');
             while (container.children.length > 1) {
@@ -418,6 +451,16 @@
                 if (filterCustomer) {
                     filteredData = filteredData.filter(sale => sale.customer === filterCustomer);
                 }
+                
+                // ✅ 자동 정렬: 날짜 → 거래처 순
+                filteredData.sort((a, b) => {
+                    // 날짜 비교
+                    const dateCompare = new Date(a.date) - new Date(b.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    
+                    // 날짜가 같으면 거래처 이름으로 비교
+                    return (a.customer || '').localeCompare(b.customer || '');
+                });
                 
                 // 날짜별로 그룹핑하여 거래명세표 생성 버튼 추가
                 const groupedByDateAndCustomer = {};
