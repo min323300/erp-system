@@ -1,5 +1,5 @@
 // ========================================
-// ERP Lite v7 - API 통신 모듈 (안정화 버전)
+// ERP Lite v11 - API 통신 모듈 (GET 전용)
 // Google Apps Script 전용 GET 방식
 // ========================================
 
@@ -118,7 +118,7 @@ async function addItem(itemData) {
 
 
 // ========================================
-// 거래명세표
+// 거래명세표 (GET 방식)
 // ========================================
 
 async function generateStatement(saleIndex) {
