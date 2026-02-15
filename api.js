@@ -1,5 +1,5 @@
 // ========================================
-// ERP Lite v11 - API 통신 모듈 (GET 전용)
+// ERP Lite v15 - API 통신 모듈 (GET 전용)
 // Google Apps Script 전용 GET 방식
 // ========================================
 
@@ -118,9 +118,15 @@ async function addItem(itemData) {
 
 
 // ========================================
-// 거래명세표 (GET 방식)
+// 거래명세표 (ERP v15)
 // ========================================
 
+// v15: 날짜와 거래처로 거래명세표 생성
+async function createStatement(date, customer) {
+    return await callAPI('generateStatement', { date, customer });
+}
+
+// 기존 버전 호환성 유지
 async function generateStatement(saleIndex) {
     return await callAPI('generateStatement', { saleIndex });
 }
