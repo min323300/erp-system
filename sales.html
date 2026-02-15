@@ -36,8 +36,11 @@
             <!-- 판매 등록 탭 -->
             <div id="sales-tab" class="tab-content active">
                 <section class="card">
-                    <h2>새 판매 등록</h2>
-                    <form id="sales-form" onsubmit="handleSubmit(event)">
+                    <h2>새 판매 등록 (여러 품목)</h2>
+                    
+                    <!-- 공통 정보 -->
+                    <div class="common-info-section">
+                        <h3>📅 공통 정보</h3>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="sale-date">판매일 *</label>
@@ -45,79 +48,66 @@
                             </div>
                             <div class="form-group">
                                 <label for="sale-company">거래처 *</label>
-                                <select id="sale-company" required onchange="updatePriceOnCompanyChange()">
-                                    <option value="">선택하세요</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="sale-item">품목 *</label>
-                                <select id="sale-item" required onchange="updatePriceOnItemChange()">
+                                <select id="sale-company" required>
                                     <option value="">선택하세요</option>
                                 </select>
                             </div>
                         </div>
-
+                        
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="sale-quantity">수량 *</label>
-                                <input type="number" id="sale-quantity" required oninput="calculateTotal()">
-                            </div>
-                            <div class="form-group">
-                                <label for="sale-price">단가 *</label>
-                                <input type="number" id="sale-price" required oninput="calculateTotal()">
-                                <small id="price-hint" class="text-muted"></small>
-                            </div>
-                            <div class="form-group">
-                                <label for="vat-included">부가세</label>
-                                <select id="vat-included" onchange="calculateTotal()">
-                                    <option value="true">포함</option>
-                                    <option value="false">별도</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="supply-price">공급가</label>
-                                <input type="text" id="supply-price" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="vat">부가세</label>
-                                <input type="text" id="vat" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="total">합계</label>
-                                <input type="text" id="total" readonly>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="paid-status">입금여부</label>
-                                <select id="paid-status" onchange="togglePaidAmount()">
+                                <label for="sale-paid-status">입금여부</label>
+                                <select id="sale-paid-status">
                                     <option value="미입금">미입금</option>
                                     <option value="부분입금">부분입금</option>
                                     <option value="완료">완료</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="paid-amount">입금액</label>
-                                <input type="number" id="paid-amount" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="delivery-method">배송방식</label>
-                                <select id="delivery-method">
-                                    <option value="오프라인">🚗 오프라인 배송 (직접 전달)</option>
-                                    <option value="택배">📦 택배 배송 (우편 발송)</option>
+                                <label for="sale-delivery-method">배송방식</label>
+                                <select id="sale-delivery-method">
+                                    <option value="오프라인">🚗 오프라인 배송</option>
+                                    <option value="택배">📦 택배 배송</option>
                                 </select>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">판매 등록</button>
-                            <button type="button" class="btn btn-secondary" onclick="resetForm()">초기화</button>
+                    <!-- 품목 정보 -->
+                    <div class="items-section">
+                        <h3>📦 품목 정보</h3>
+                        <div id="items-container">
+                            <!-- 품목 행들이 여기에 동적으로 추가됨 -->
                         </div>
-                    </form>
+                        
+                        <button type="button" class="btn btn-secondary" onclick="addItemRow()" style="margin-top: 1rem;">
+                            ➕ 품목 추가
+                        </button>
+                    </div>
+
+                    <!-- 전체 합계 -->
+                    <div class="total-section">
+                        <h3>💰 전체 합계</h3>
+                        <div class="total-display">
+                            <div class="total-row">
+                                <span class="total-label">총 공급가:</span>
+                                <span class="total-value" id="total-supply-price">0원</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="total-label">총 부가세:</span>
+                                <span class="total-value" id="total-vat">0원</span>
+                            </div>
+                            <div class="total-row total-main">
+                                <span class="total-label">총 금액:</span>
+                                <span class="total-value" id="total-amount">0원</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="handleMultiItemSubmit()">일괄 등록</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetMultiItemForm()">초기화</button>
+                    </div>
                 </section>
 
                 <!-- 판매 내역 -->
@@ -274,8 +264,12 @@
     </div>
 
     <!-- 캐시 문제 해결을 위해 버전 파라미터 추가 -->
-    <script src="api.js?v=20260214"></script>
+    <script src="api.js?v=20260215"></script>
     <script>
+        // 전역 변수
+        let itemCounter = 0;
+        let availableItems = [];
+
         // 탭 전환
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => {
@@ -302,6 +296,9 @@
             await loadCompanies();
             await loadItems();
             await loadSales();
+            
+            // 첫 번째 품목 행 추가
+            addItemRow();
         });
 
         function setTodayDate() {
@@ -343,46 +340,102 @@
         async function loadItems() {
             const result = await getItems();
             if (result.success && result.data.length > 0) {
-                const select = document.getElementById('sale-item');
-                select.innerHTML = '<option value="">선택하세요</option>';
-                result.data.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.name;
-                    option.dataset.price = item.price;
-                    option.textContent = `${item.name} (${formatCurrency(item.price)})`;
-                    select.appendChild(option);
-                });
+                availableItems = result.data;
             }
         }
 
-        async function updatePriceOnCompanyChange() {
-            const item = document.getElementById('sale-item').value;
-            if (item) {
-                await updateLastPrice();
+        // 품목 행 추가
+        function addItemRow() {
+            itemCounter++;
+            const container = document.getElementById('items-container');
+            
+            const itemRow = document.createElement('div');
+            itemRow.className = 'item-row';
+            itemRow.id = `item-row-${itemCounter}`;
+            itemRow.dataset.itemId = itemCounter;
+            
+            let itemOptions = '<option value="">선택하세요</option>';
+            availableItems.forEach(item => {
+                itemOptions += `<option value="${item.name}" data-price="${item.price}">${item.name} (${formatCurrency(item.price)})</option>`;
+            });
+            
+            itemRow.innerHTML = `
+                <div class="item-row-header">
+                    <h4>품목 ${itemCounter}</h4>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItemRow(${itemCounter})">🗑️ 삭제</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>품목 *</label>
+                        <select class="item-select" onchange="updateItemPrice(${itemCounter})" required>
+                            ${itemOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>수량 *</label>
+                        <input type="number" class="item-quantity" min="0" step="0.01" value="1" oninput="calculateItemTotal(${itemCounter})" required>
+                    </div>
+                    <div class="form-group">
+                        <label>단가 *</label>
+                        <input type="number" class="item-price" min="0" oninput="calculateItemTotal(${itemCounter})" required>
+                        <small class="price-hint"></small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>부가세</label>
+                        <select class="item-vat-included" onchange="calculateItemTotal(${itemCounter})">
+                            <option value="true">포함</option>
+                            <option value="false">별도</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>공급가</label>
+                        <input type="text" class="item-supply-price" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>부가세</label>
+                        <input type="text" class="item-vat" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>합계</label>
+                        <input type="text" class="item-total" readonly>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(itemRow);
+        }
+
+        // 품목 행 삭제
+        function removeItemRow(itemId) {
+            const row = document.getElementById(`item-row-${itemId}`);
+            if (row) {
+                row.remove();
+                calculateGrandTotal();
             }
         }
 
-        async function updatePriceOnItemChange() {
-            await updateLastPrice();
-        }
-
-        async function updateLastPrice() {
+        // 품목 가격 자동 입력
+        async function updateItemPrice(itemId) {
+            const row = document.getElementById(`item-row-${itemId}`);
+            const itemSelect = row.querySelector('.item-select');
+            const priceInput = row.querySelector('.item-price');
+            const priceHint = row.querySelector('.price-hint');
             const company = document.getElementById('sale-company').value;
-            const item = document.getElementById('sale-item').value;
-            const priceInput = document.getElementById('sale-price');
-            const priceHint = document.getElementById('price-hint');
-
+            const item = itemSelect.value;
+            
             if (!company || !item) return;
-
+            
             try {
                 const result = await getLastPrice(company, item);
-
+                
                 if (result.success && result.data.price) {
                     priceInput.value = result.data.price;
                     priceHint.textContent = `💡 최근 거래 가격: ${formatCurrency(result.data.price)}`;
                     priceHint.style.color = '#28a745';
                 } else {
-                    const selectedOption = document.getElementById('sale-item').selectedOptions[0];
+                    const selectedOption = itemSelect.selectedOptions[0];
                     if (selectedOption) {
                         const defaultPrice = selectedOption.dataset.price;
                         priceInput.value = defaultPrice;
@@ -390,20 +443,22 @@
                         priceHint.style.color = '#6c757d';
                     }
                 }
-
-                calculateTotal();
+                
+                calculateItemTotal(itemId);
             } catch (error) {
                 console.error('가격 조회 오류:', error);
             }
         }
 
-        function calculateTotal() {
-            const quantity = Number(document.getElementById('sale-quantity').value) || 0;
-            const price = Number(document.getElementById('sale-price').value) || 0;
-            const vatIncluded = document.getElementById('vat-included').value === 'true';
-
+        // 품목별 합계 계산
+        function calculateItemTotal(itemId) {
+            const row = document.getElementById(`item-row-${itemId}`);
+            const quantity = Number(row.querySelector('.item-quantity').value) || 0;
+            const price = Number(row.querySelector('.item-price').value) || 0;
+            const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
+            
             let supplyPrice, vat, total;
-
+            
             if (vatIncluded) {
                 total = quantity * price;
                 supplyPrice = Math.round(total / 1.1);
@@ -413,70 +468,147 @@
                 vat = Math.round(supplyPrice * 0.1);
                 total = supplyPrice + vat;
             }
-
-            document.getElementById('supply-price').value = formatCurrency(supplyPrice);
-            document.getElementById('vat').value = formatCurrency(vat);
-            document.getElementById('total').value = formatCurrency(total);
+            
+            row.querySelector('.item-supply-price').value = formatCurrency(supplyPrice);
+            row.querySelector('.item-vat').value = formatCurrency(vat);
+            row.querySelector('.item-total').value = formatCurrency(total);
+            
+            calculateGrandTotal();
         }
 
-        function togglePaidAmount() {
-            const status = document.getElementById('paid-status').value;
-            const paidAmountInput = document.getElementById('paid-amount');
-
-            if (status === '완료') {
-                const total = document.getElementById('total').value.replace(/[^0-9]/g, '');
-                paidAmountInput.value = total;
-            } else if (status === '미입금') {
-                paidAmountInput.value = 0;
-            }
+        // 전체 합계 계산
+        function calculateGrandTotal() {
+            const rows = document.querySelectorAll('.item-row');
+            let totalSupply = 0;
+            let totalVat = 0;
+            let grandTotal = 0;
+            
+            rows.forEach(row => {
+                const quantity = Number(row.querySelector('.item-quantity').value) || 0;
+                const price = Number(row.querySelector('.item-price').value) || 0;
+                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
+                
+                let supply, vat, total;
+                
+                if (vatIncluded) {
+                    total = quantity * price;
+                    supply = Math.round(total / 1.1);
+                    vat = total - supply;
+                } else {
+                    supply = quantity * price;
+                    vat = Math.round(supply * 0.1);
+                    total = supply + vat;
+                }
+                
+                totalSupply += supply;
+                totalVat += vat;
+                grandTotal += total;
+            });
+            
+            document.getElementById('total-supply-price').textContent = formatCurrency(totalSupply);
+            document.getElementById('total-vat').textContent = formatCurrency(totalVat);
+            document.getElementById('total-amount').textContent = formatCurrency(grandTotal);
         }
 
-        async function handleSubmit(e) {
-            e.preventDefault();
-
-            const quantity = Number(document.getElementById('sale-quantity').value);
-            const price = Number(document.getElementById('sale-price').value);
-            const vatIncluded = document.getElementById('vat-included').value === 'true';
-
-            let supplyPrice, vat, total;
-
-            if (vatIncluded) {
-                total = quantity * price;
-                supplyPrice = Math.round(total / 1.1);
-                vat = total - supplyPrice;
-            } else {
-                supplyPrice = quantity * price;
-                vat = Math.round(supplyPrice * 0.1);
-                total = supplyPrice + vat;
+        // 여러 품목 일괄 등록
+        async function handleMultiItemSubmit() {
+            const company = document.getElementById('sale-company').value;
+            const date = document.getElementById('sale-date').value;
+            const paidStatus = document.getElementById('sale-paid-status').value;
+            const deliveryMethod = document.getElementById('sale-delivery-method').value;
+            
+            if (!company || !date) {
+                alert('판매일과 거래처를 선택해주세요.');
+                return;
             }
-
-            const paidAmount = Number(document.getElementById('paid-amount').value) || 0;
-            const receivable = total - paidAmount;
-
-            const formData = {
-                date: document.getElementById('sale-date').value,
-                company: document.getElementById('sale-company').value,
-                item: document.getElementById('sale-item').value,
-                quantity: quantity,
-                price: price,
-                supplyPrice: supplyPrice,
-                vat: vat,
-                total: total,
-                paid: document.getElementById('paid-status').value,
-                paidAmount: paidAmount,
-                receivable: receivable,
-                deliveryMethod: document.getElementById('delivery-method').value
-            };
-
-            const result = await addSale(formData);
-
-            if (result.success) {
-                showMessage('판매가 등록되었습니다.', 'success');
-                resetForm();
+            
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length === 0) {
+                alert('최소 1개 이상의 품목을 추가해주세요.');
+                return;
+            }
+            
+            const items = [];
+            let hasError = false;
+            
+            rows.forEach(row => {
+                const itemSelect = row.querySelector('.item-select');
+                const quantity = Number(row.querySelector('.item-quantity').value);
+                const price = Number(row.querySelector('.item-price').value);
+                
+                if (!itemSelect.value || !quantity || !price) {
+                    hasError = true;
+                    return;
+                }
+                
+                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
+                
+                let supplyPrice, vat, total;
+                
+                if (vatIncluded) {
+                    total = quantity * price;
+                    supplyPrice = Math.round(total / 1.1);
+                    vat = total - supplyPrice;
+                } else {
+                    supplyPrice = quantity * price;
+                    vat = Math.round(supplyPrice * 0.1);
+                    total = supplyPrice + vat;
+                }
+                
+                items.push({
+                    date: date,
+                    company: company,
+                    item: itemSelect.value,
+                    quantity: quantity,
+                    price: price,
+                    supplyPrice: supplyPrice,
+                    vat: vat,
+                    total: total,
+                    paid: paidStatus,
+                    paidAmount: paidStatus === '완료' ? total : 0,
+                    receivable: paidStatus === '완료' ? 0 : total,
+                    deliveryMethod: deliveryMethod
+                });
+            });
+            
+            if (hasError) {
+                alert('모든 품목의 정보를 입력해주세요.');
+                return;
+            }
+            
+            // 순차적으로 등록
+            let successCount = 0;
+            for (const item of items) {
+                const result = await addSale(item);
+                if (result.success) {
+                    successCount++;
+                } else {
+                    console.error('등록 실패:', item, result.message);
+                }
+            }
+            
+            if (successCount === items.length) {
+                alert(`${successCount}개 품목이 등록되었습니다.`);
+                resetMultiItemForm();
                 await loadSales();
             } else {
-                showMessage(result.message || '판매 등록에 실패했습니다.', 'danger');
+                alert(`${successCount}/${items.length}개 품목이 등록되었습니다.\n일부 품목 등록에 실패했습니다.`);
+                await loadSales();
             }
+        }
+
+        // 폼 초기화
+        function resetMultiItemForm() {
+            document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('sale-company').value = '';
+            document.getElementById('sale-paid-status').value = '미입금';
+            document.getElementById('sale-delivery-method').value = '오프라인';
+            
+            document.getElementById('items-container').innerHTML = '';
+            itemCounter = 0;
+            addItemRow();
+            
+            calculateGrandTotal();
         }
 
         async function handlePaymentSubmit(e) {
@@ -702,16 +834,6 @@
             }
         }
 
-        function resetForm() {
-            document.getElementById('sales-form').reset();
-            setTodayDate();
-            document.getElementById('sale-price').value = '';
-            document.getElementById('supply-price').value = '';
-            document.getElementById('vat').value = '';
-            document.getElementById('total').value = '';
-            document.getElementById('price-hint').textContent = '';
-        }
-
         function resetPaymentForm() {
             document.getElementById('payment-form').reset();
             setTodayDate();
@@ -719,56 +841,83 @@
     </script>
 
     <style>
-        .tabs {
+        .common-info-section,
+        .items-section,
+        .total-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .item-row {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .item-row-header {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #1976d2;
         }
 
-        .tab-button {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            color: #666;
-            transition: all 0.3s;
-        }
-
-        .tab-button:hover {
-            color: #333;
-            background: #f5f5f5;
-        }
-
-        .tab-button.active {
+        .item-row-header h4 {
+            margin: 0;
             color: #1976d2;
-            border-bottom-color: #1976d2;
         }
 
-        .tab-content {
-            display: none;
+        .total-display {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
         }
 
-        .tab-content.active {
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .total-row.total-main {
+            border-bottom: none;
+            border-top: 2px solid #1976d2;
+            padding-top: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .total-row.total-main .total-label,
+        .total-row.total-main .total-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .price-hint {
             display: block;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
         }
 
-        #price-hint {
-            display: block;
-            margin-top: 5px;
-            font-size: 0.9em;
-        }
+        @media (max-width: 768px) {
+            .item-row {
+                padding: 1rem;
+            }
 
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: inherit;
-            resize: vertical;
+            .item-row-header h4 {
+                font-size: 1rem;
+            }
+
+            .total-row.total-main .total-label,
+            .total-row.total-main .total-value {
+                font-size: 1.1rem;
+            }
         }
     </style>
 </body>
