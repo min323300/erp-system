@@ -486,7 +486,9 @@
         }
 
         async function generateStatement(date, customer) {
-            const result = await createStatement(date, customer);
+            // 날짜를 YYYY-MM-DD 형식으로 변환
+            const formattedDate = formatDate(date);
+            const result = await createStatement(formattedDate, customer);
             if (result.success) {
                 alert('거래명세표가 생성되었습니다.');
                 window.open(result.url, '_blank');
