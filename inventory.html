@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>재고 관리 - 거래명세 관리 시스템</title>
+    <title>재고 관리 - ERP</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,12 +27,162 @@
                 <h1 class="page-title">재고 관리</h1>
             </div>
 
+            <!-- 재고 요약 -->
+            <div class="dashboard-grid">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: #e3f2fd;">📦</div>
+                    <div class="stat-content">
+                        <div class="stat-label">총 재고 품목</div>
+                        <div class="stat-value" id="total-items">0</div>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: #fff3e0;">⚠️</div>
+                    <div class="stat-content">
+                        <div class="stat-label">재고 부족 품목</div>
+                        <div class="stat-value text-danger" id="low-stock-items">0</div>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: #e8f5e9;">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-label">총 재고 가치</div>
+                        <div class="stat-value" id="total-value">0원</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 재고 현황 -->
             <section class="card">
-                <h2>준비 중입니다</h2>
-                <p>재고 관리 기능은 추후 업데이트될 예정입니다.</p>
-                <a href="sales.html" class="btn btn-primary">판매 관리로 이동</a>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>재고 현황</h2>
+                    <button class="btn btn-primary" onclick="loadInventory()">🔄 새로고침</button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>품목</th>
+                                <th>단위</th>
+                                <th>총 입고</th>
+                                <th>총 출고</th>
+                                <th>현재 재고</th>
+                                <th>평균 원가</th>
+                                <th>재고 가치</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody"></tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>
+
+    <script src="api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadInventory();
+        });
+
+        async function loadInventory() {
+            const tbody = document.getElementById('inventory-tbody');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">로딩 중...</td></tr>';
+            
+            const result = await getInventory();
+            
+            if (result.success) {
+                if (result.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">재고 데이터가 없습니다</td></tr>';
+                    updateSummary([], 0);
+                    return;
+                }
+                
+                let html = '';
+                let lowStockCount = 0;
+                let totalValue = 0;
+                
+                result.data.forEach(item => {
+                    let statusClass = '';
+                    let statusText = '정상';
+                    let statusBadge = 'badge-success';
+                    
+                    if (item.stock <= 0) {
+                        statusText = '품절';
+                        statusBadge = 'badge-danger';
+                        statusClass = 'row-danger';
+                        lowStockCount++;
+                    } else if (item.stock <= 5) {
+                        statusText = '부족';
+                        statusBadge = 'badge-warning';
+                        statusClass = 'row-warning';
+                        lowStockCount++;
+                    }
+                    
+                    totalValue += item.value;
+                    
+                    html += `
+                        <tr class="${statusClass}">
+                            <td><strong>${item.item}</strong></td>
+                            <td>${item.unit}</td>
+                            <td class="text-right">${item.inbound.toFixed(1)}</td>
+                            <td class="text-right">${item.outbound.toFixed(1)}</td>
+                            <td class="text-right"><strong>${item.stock.toFixed(1)}</strong></td>
+                            <td class="text-right">${formatCurrency(Math.round(item.avgCost))}</td>
+                            <td class="text-right"><strong>${formatCurrency(item.value)}</strong></td>
+                            <td class="text-center">
+                                <span class="badge ${statusBadge}">${statusText}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+                updateSummary(result.data, lowStockCount, totalValue);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">재고 데이터를 불러올 수 없습니다</td></tr>';
+                updateSummary([], 0, 0);
+            }
+        }
+
+        function updateSummary(data, lowStockCount, totalValue) {
+            document.getElementById('total-items').textContent = data.length;
+            document.getElementById('low-stock-items').textContent = lowStockCount;
+            document.getElementById('total-value').textContent = formatCurrency(totalValue);
+        }
+    </script>
+
+    <style>
+        .row-danger {
+            background-color: #ffebee !important;
+        }
+        
+        .row-warning {
+            background-color: #fff3e0 !important;
+        }
+
+        .row-danger:hover {
+            background-color: #ffcdd2 !important;
+        }
+
+        .row-warning:hover {
+            background-color: #ffe0b2 !important;
+        }
+
+        .dashboard-grid {
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
 </body>
 </html>
