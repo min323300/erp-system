@@ -1,5 +1,5 @@
 /* ========================================
-   ERP Lite v6 - 스타일시트
+   ERP Lite v11 - 모바일 최적화 스타일시트
    ======================================== */
 
 * {
@@ -199,6 +199,7 @@ body {
     text-decoration: none;
     display: inline-block;
     text-align: center;
+    min-height: 44px; /* 터치 친화적 */
 }
 
 .btn-primary {
@@ -231,12 +232,14 @@ body {
 .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+    min-height: 36px;
 }
 
-/* ========== 테이블 ========== */
+/* ========== 테이블 (데스크톱) ========== */
 
 .table-responsive {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -320,28 +323,138 @@ tbody tr:hover {
     margin-bottom: 1rem;
 }
 
-/* ========== 반응형 ========== */
+/* ========== 모바일 카드 뷰 (기본 숨김) ========== */
+
+.mobile-sales-list {
+    display: none;
+}
+
+.mobile-sale-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #1976d2;
+}
+
+.mobile-sale-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+}
+
+.mobile-sale-date {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.mobile-sale-company {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1976d2;
+}
+
+.mobile-sale-info {
+    margin-bottom: 0.5rem;
+}
+
+.mobile-sale-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+}
+
+.mobile-sale-label {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.mobile-sale-value {
+    font-weight: 500;
+}
+
+.mobile-sale-total {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1976d2;
+}
+
+.mobile-sale-actions {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eee;
+}
+
+/* ========== 반응형 - 모바일 (768px 이하) ========== */
 
 @media (max-width: 768px) {
+    /* 네비게이션 */
     .navbar {
         padding: 1rem;
     }
     
+    .nav-brand a {
+        font-size: 1.25rem;
+    }
+    
     .nav-menu {
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: 0.5rem;
     }
     
+    .nav-menu a {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* 메인 콘텐츠 */
     .main-content {
         padding: 1rem;
     }
     
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    /* 카드 */
+    .card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .card h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* 대시보드 */
     .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    /* 폼 */
+    .form-row {
         grid-template-columns: 1fr;
     }
     
-    .form-row {
-        grid-template-columns: 1fr;
+    .form-group input,
+    .form-group select {
+        font-size: 16px; /* iOS 줌 방지 */
+        padding: 0.875rem;
     }
     
     .form-actions {
@@ -350,13 +463,120 @@ tbody tr:hover {
     
     .btn {
         width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
     }
     
-    table {
-        font-size: 0.875rem;
+    /* 테이블 숨김, 모바일 카드 표시 */
+    .table-responsive {
+        display: none;
     }
     
-    th, td {
-        padding: 0.5rem;
+    .mobile-sales-list {
+        display: block;
+    }
+    
+    /* 필터 섹션 */
+    .filter-section {
+        padding: 0.75rem;
+    }
+    
+    /* 탭 버튼 */
+    .tabs {
+        gap: 0.5rem;
+    }
+    
+    .tab-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* ========== 작은 모바일 (480px 이하) ========== */
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.75rem;
+    }
+    
+    .nav-brand a {
+        font-size: 1.1rem;
+    }
+    
+    .nav-menu {
+        gap: 0.25rem;
+    }
+    
+    .nav-menu a {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .main-content {
+        padding: 0.75rem;
+    }
+    
+    .page-title {
+        font-size: 1.25rem;
+    }
+    
+    .card {
+        padding: 0.75rem;
+    }
+    
+    .mobile-sale-card {
+        padding: 0.875rem;
+    }
+    
+    .mobile-sale-company {
+        font-size: 1rem;
+    }
+    
+    .mobile-sale-total {
+        font-size: 1.1rem;
+    }
+}
+
+/* ========== 터치 디바이스 최적화 ========== */
+
+@media (hover: none) and (pointer: coarse) {
+    /* 터치 디바이스에서 버튼 크기 확대 */
+    .btn {
+        min-height: 48px;
+    }
+    
+    .btn-sm {
+        min-height: 40px;
+    }
+    
+    /* 터치 간격 확보 */
+    .form-group {
+        margin-bottom: 0.25rem;
+    }
+    
+    /* 링크 터치 영역 확대 */
+    .nav-menu a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+/* ========== 스크롤 힌트 ========== */
+
+.scroll-hint {
+    display: none;
+    text-align: center;
+    color: #999;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    background: #f9f9f9;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .table-responsive .scroll-hint {
+        display: block;
     }
 }
