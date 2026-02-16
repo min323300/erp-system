@@ -189,59 +189,87 @@
         let itemCounter = 1;
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // 오늘 날짜 설정
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('sale-date').value = today;
+            console.log('🚀 DOMContentLoaded - 초기화 시작');
+            
+            try {
+                // 오늘 날짜 설정
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('sale-date').value = today;
+                console.log('✅ 오늘 날짜 설정:', today);
 
-            // 데이터 로드
-            await loadCustomers();
-            await loadItemsForSelect();
-            await loadSales();
+                // 데이터 로드
+                await loadCustomers();
+                await loadItemsForSelect();
+                await loadSales();
+                
+                console.log('✅ 초기화 완료');
+            } catch (error) {
+                console.error('❌ 초기화 에러:', error);
+            }
         });
 
         async function loadCustomers() {
-            const result = await getCompanies();
-            const customerSelect = document.getElementById('sale-customer');
-            const filterSelect = document.getElementById('filter-customer');
-            
-            if (result.success && result.data.length > 0) {
-                const customers = result.data.filter(c => c.type === '거래처');
+            try {
+                console.log('📥 거래처 로드 시작');
+                const result = await getCompanies();
+                console.log('거래처 데이터:', result);
                 
-                customers.forEach(customer => {
-                    const option1 = document.createElement('option');
-                    option1.value = customer.name;
-                    option1.textContent = customer.name;
-                    customerSelect.appendChild(option1);
+                const customerSelect = document.getElementById('sale-customer');
+                const filterSelect = document.getElementById('filter-customer');
+                
+                if (result.success && result.data.length > 0) {
+                    const customers = result.data.filter(c => c.type === '거래처');
+                    console.log(`✅ 거래처 ${customers.length}개 로드됨`);
+                    
+                    customers.forEach(customer => {
+                        const option1 = document.createElement('option');
+                        option1.value = customer.name;
+                        option1.textContent = customer.name;
+                        customerSelect.appendChild(option1);
 
-                    const option2 = document.createElement('option');
-                    option2.value = customer.name;
-                    option2.textContent = customer.name;
-                    filterSelect.appendChild(option2);
-                });
+                        const option2 = document.createElement('option');
+                        option2.value = customer.name;
+                        option2.textContent = customer.name;
+                        filterSelect.appendChild(option2);
+                    });
+                } else {
+                    console.warn('⚠️ 거래처 데이터 없음');
+                }
+            } catch (error) {
+                console.error('❌ 거래처 로드 에러:', error);
             }
         }
 
         async function loadItemsForSelect() {
-            const result = await getItems();
-            
-            if (result.success && result.data.length > 0) {
-                const selects = document.querySelectorAll('.item-name');
+            try {
+                console.log('📥 품목 로드 시작');
+                const result = await getItems();
+                console.log('품목 데이터:', result);
                 
-                selects.forEach(select => {
-                    // 기존 옵션 제거 (첫 번째 "선택하세요" 제외)
-                    while (select.options.length > 1) {
-                        select.remove(1);
-                    }
+                if (result.success && result.data.length > 0) {
+                    const selects = document.querySelectorAll('.item-name');
+                    console.log(`✅ 품목 ${result.data.length}개 로드됨`);
                     
-                    // 새 옵션 추가
-                    result.data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.name;
-                        option.dataset.price = item.price;
-                        option.textContent = item.name;
-                        select.appendChild(option);
+                    selects.forEach(select => {
+                        // 기존 옵션 제거 (첫 번째 "선택하세요" 제외)
+                        while (select.options.length > 1) {
+                            select.remove(1);
+                        }
+                        
+                        // 새 옵션 추가
+                        result.data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.name;
+                            option.dataset.price = item.price;
+                            option.textContent = item.name;
+                            select.appendChild(option);
+                        });
                     });
-                });
+                } else {
+                    console.warn('⚠️ 품목 데이터 없음');
+                }
+            } catch (error) {
+                console.error('❌ 품목 로드 에러:', error);
             }
         }
 
@@ -329,79 +357,84 @@
         });
 
         async function handleMultiItemSubmit() {
-            const date = document.getElementById('sale-date').value;
-            const customer = document.getElementById('sale-customer').value;
-            const delivery = document.getElementById('sale-delivery').value;
-            const boxReturn = document.getElementById('sale-box-return').value;
-            const paymentStatus = document.getElementById('sale-payment-status').value;
-            const paymentAmount = Number(document.getElementById('sale-payment-amount').value);
-            
-            // 부가세 계산 방식 가져오기
-            const taxType = document.querySelector('input[name="tax-type"]:checked').value;
+            try {
+                const date = document.getElementById('sale-date').value;
+                const customer = document.getElementById('sale-customer').value;
+                const delivery = document.getElementById('sale-delivery').value;
+                const boxReturn = document.getElementById('sale-box-return').value;
+                const paymentStatus = document.getElementById('sale-payment-status').value;
+                const paymentAmount = Number(document.getElementById('sale-payment-amount').value);
+                
+                // 부가세 계산 방식 가져오기
+                const taxType = document.querySelector('input[name="tax-type"]:checked').value;
 
-            const itemRows = document.querySelectorAll('.item-row');
-            const sales = [];
+                const itemRows = document.querySelectorAll('.item-row');
+                const sales = [];
 
-            itemRows.forEach(row => {
-                const itemName = row.querySelector('.item-name').value;
-                const quantity = Number(row.querySelector('.item-quantity').value);
-                const price = Number(row.querySelector('.item-price').value);
-                const traceNumber = row.querySelector('.item-trace-number').value || '';
+                itemRows.forEach(row => {
+                    const itemName = row.querySelector('.item-name').value;
+                    const quantity = Number(row.querySelector('.item-quantity').value);
+                    const price = Number(row.querySelector('.item-price').value);
+                    const traceNumber = row.querySelector('.item-trace-number').value || '';
 
-                if (itemName && quantity > 0 && price > 0) {
-                    let supplyPrice, vat, total;
-                    
-                    if (taxType === 'included') {
-                        // 부가세 포함: 입력가격이 최종가격
-                        total = price;
-                        supplyPrice = Math.round(price / 1.1);
-                        vat = price - supplyPrice;
-                    } else {
-                        // 부가세 별도: 입력가격이 공급가액
-                        supplyPrice = price;
-                        vat = Math.round(price * 0.1);
-                        total = price + vat;
+                    if (itemName && quantity > 0 && price > 0) {
+                        let supplyPrice, vat, total;
+                        
+                        if (taxType === 'included') {
+                            // 부가세 포함: 입력가격이 최종가격
+                            total = price;
+                            supplyPrice = Math.round(price / 1.1);
+                            vat = price - supplyPrice;
+                        } else {
+                            // 부가세 별도: 입력가격이 공급가액
+                            supplyPrice = price;
+                            vat = Math.round(price * 0.1);
+                            total = price + vat;
+                        }
+
+                        sales.push({
+                            date: date,
+                            customer: customer,
+                            item: itemName,
+                            quantity: quantity,
+                            price: total,  // 합계 금액
+                            supplyPrice: supplyPrice,
+                            vat: vat,
+                            total: total,
+                            paymentStatus: paymentStatus,
+                            paymentAmount: paymentAmount,
+                            unpaid: total - paymentAmount,
+                            delivery: delivery,
+                            traceNumber: traceNumber,
+                            boxReturn: boxReturn
+                        });
                     }
+                });
 
-                    sales.push({
-                        date: date,
-                        customer: customer,
-                        item: itemName,
-                        quantity: quantity,
-                        price: total,  // 합계 금액
-                        supplyPrice: supplyPrice,
-                        vat: vat,
-                        total: total,
-                        paymentStatus: paymentStatus,
-                        paymentAmount: paymentAmount,
-                        unpaid: total - paymentAmount,
-                        delivery: delivery,
-                        traceNumber: traceNumber,
-                        boxReturn: boxReturn
-                    });
+                if (sales.length === 0) {
+                    alert('최소 1개 이상의 품목을 입력해주세요.');
+                    return;
                 }
-            });
 
-            if (sales.length === 0) {
-                alert('최소 1개 이상의 품목을 입력해주세요.');
-                return;
-            }
-
-            // 각 품목별로 개별 저장
-            let successCount = 0;
-            for (const sale of sales) {
-                const result = await addSale(sale);
-                if (result.success) {
-                    successCount++;
+                // 각 품목별로 개별 저장
+                let successCount = 0;
+                for (const sale of sales) {
+                    const result = await addSale(sale);
+                    if (result.success) {
+                        successCount++;
+                    }
                 }
-            }
 
-            if (successCount > 0) {
-                alert(`${successCount}개 품목이 등록되었습니다.`);
-                resetSaleForm();
-                await loadSales();
-            } else {
-                alert('등록에 실패했습니다.');
+                if (successCount > 0) {
+                    alert(`${successCount}개 품목이 등록되었습니다.`);
+                    resetSaleForm();
+                    await loadSales();
+                } else {
+                    alert('등록에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('❌ 판매 등록 에러:', error);
+                alert('판매 등록 중 오류가 발생했습니다: ' + error.message);
             }
         }
 
@@ -432,130 +465,237 @@
         }
 
         async function loadSales() {
+            console.log('📊 loadSales() 시작');
             const tbody = document.getElementById('sales-tbody');
-            const result = await getSales();
             
-            if (result.success && result.data.length > 0) {
+            try {
+                console.log('📡 getSales() 호출 중...');
+                const result = await getSales();
+                console.log('getSales() 결과:', result);
+                
+                if (!result.success) {
+                    console.error('❌ getSales 실패:', result);
+                    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger">데이터 로드 실패: ' + (result.message || '알 수 없는 오류') + '</td></tr>';
+                    return;
+                }
+                
+                if (!result.data || result.data.length === 0) {
+                    console.log('ℹ️ 판매 데이터 없음');
+                    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted">판매 내역이 없습니다</td></tr>';
+                    return;
+                }
+                
+                console.log(`✅ ${result.data.length}개 판매 데이터 로드됨`);
                 let html = '';
                 
                 // 필터 적용
                 const filterDate = document.getElementById('filter-date').value;
                 const filterCustomer = document.getElementById('filter-customer').value;
+                console.log('필터 - 날짜:', filterDate, '거래처:', filterCustomer);
                 
                 let filteredData = result.data;
                 
-                // ✅ 날짜 필터링 수정: YYYY-MM-DD 형식으로 통일
+                // 날짜 필터링
                 if (filterDate) {
+                    console.log('날짜 필터링 시작...');
                     filteredData = filteredData.filter(sale => {
-                        const saleDate = formatDate(sale.date);
-                        return saleDate === filterDate;
+                        try {
+                            const saleDate = formatDate(sale.date);
+                            const matched = saleDate === filterDate;
+                            if (!matched) {
+                                console.log('필터링 제외:', sale.date, '→', saleDate, '≠', filterDate);
+                            }
+                            return matched;
+                        } catch (e) {
+                            console.error('날짜 필터링 에러:', e, sale.date);
+                            return false;
+                        }
                     });
+                    console.log(`날짜 필터링 후: ${filteredData.length}개`);
                 }
                 
                 if (filterCustomer) {
+                    console.log('거래처 필터링 시작...');
                     filteredData = filteredData.filter(sale => sale.customer === filterCustomer);
+                    console.log(`거래처 필터링 후: ${filteredData.length}개`);
                 }
                 
-                // ✅ 자동 정렬: 날짜 → 거래처 순
+                // 자동 정렬 (안전하게)
+                console.log('정렬 시작...');
                 filteredData.sort((a, b) => {
-                    // 날짜 비교
-                    const dateCompare = new Date(a.date) - new Date(b.date);
-                    if (dateCompare !== 0) return dateCompare;
-                    
-                    // 날짜가 같으면 거래처 이름으로 비교
-                    return (a.customer || '').localeCompare(b.customer || '');
+                    try {
+                        // 날짜 비교
+                        const dateA = new Date(a.date).getTime();
+                        const dateB = new Date(b.date).getTime();
+                        
+                        if (isNaN(dateA) || isNaN(dateB)) {
+                            console.warn('⚠️ 잘못된 날짜 형식:', a.date, b.date);
+                            return 0;
+                        }
+                        
+                        const dateCompare = dateA - dateB;
+                        if (dateCompare !== 0) return dateCompare;
+                        
+                        // 날짜가 같으면 거래처 이름으로 비교
+                        return (a.customer || '').localeCompare(b.customer || '', 'ko-KR');
+                    } catch (e) {
+                        console.error('❌ 정렬 에러:', e);
+                        return 0;
+                    }
                 });
+                console.log('✅ 정렬 완료');
                 
-                // 날짜별로 그룹핑하여 거래명세표 생성 버튼 추가
+                // 날짜별로 그룹핑
+                console.log('그룹핑 시작...');
                 const groupedByDateAndCustomer = {};
                 filteredData.forEach(sale => {
-                    const key = `${formatDate(sale.date)}_${sale.customer}`;
-                    if (!groupedByDateAndCustomer[key]) {
-                        groupedByDateAndCustomer[key] = [];
+                    try {
+                        const key = `${formatDate(sale.date)}_${sale.customer}`;
+                        if (!groupedByDateAndCustomer[key]) {
+                            groupedByDateAndCustomer[key] = [];
+                        }
+                        groupedByDateAndCustomer[key].push(sale);
+                    } catch (e) {
+                        console.error('❌ 그룹핑 에러:', e, sale);
                     }
-                    groupedByDateAndCustomer[key].push(sale);
                 });
+                console.log('✅ 그룹핑 완료:', Object.keys(groupedByDateAndCustomer).length, '그룹');
                 
+                // HTML 생성
+                console.log('HTML 생성 시작...');
                 filteredData.forEach(sale => {
-                    const key = `${formatDate(sale.date)}_${sale.customer}`;
-                    const isFirstInGroup = groupedByDateAndCustomer[key][0] === sale;
-                    const rowSpan = groupedByDateAndCustomer[key].length;
-                    
-                    html += `<tr>`;
-                    
-                    if (isFirstInGroup) {
-                        html += `
-                            <td rowspan="${rowSpan}">${formatDate(sale.date)}</td>
-                            <td rowspan="${rowSpan}">${sale.customer}</td>
-                        `;
-                    }
-                    
-                    html += `
-                        <td>${sale.item}</td>
-                        <td class="text-center">${sale.quantity}</td>
-                        <td class="text-right">${formatCurrency(sale.price)}</td>
-                        <td class="text-right">${formatCurrency(sale.supplyPrice)}</td>
-                        <td class="text-right">${formatCurrency(sale.vat)}</td>
-                        <td class="text-right">${formatCurrency(sale.total)}</td>
-                    `;
-                    
-                    if (isFirstInGroup) {
-                        const paymentBadge = sale.paymentStatus === '입금완료' ? 'badge-success' : 
-                                           sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
+                    try {
+                        const key = `${formatDate(sale.date)}_${sale.customer}`;
+                        const isFirstInGroup = groupedByDateAndCustomer[key][0] === sale;
+                        const rowSpan = groupedByDateAndCustomer[key].length;
+                        
+                        html += `<tr>`;
+                        
+                        if (isFirstInGroup) {
+                            html += `
+                                <td rowspan="${rowSpan}">${formatDate(sale.date)}</td>
+                                <td rowspan="${rowSpan}">${sale.customer}</td>
+                            `;
+                        }
                         
                         html += `
-                            <td rowspan="${rowSpan}"><span class="badge ${paymentBadge}">${sale.paymentStatus}</span></td>
-                            <td rowspan="${rowSpan}" class="text-right">${formatCurrency(sale.unpaid)}</td>
-                            <td rowspan="${rowSpan}" class="text-center">${sale.delivery}</td>
+                            <td>${sale.item}</td>
+                            <td class="text-center">${sale.quantity}</td>
+                            <td class="text-right">${formatCurrency(sale.price)}</td>
+                            <td class="text-right">${formatCurrency(sale.supplyPrice)}</td>
+                            <td class="text-right">${formatCurrency(sale.vat)}</td>
+                            <td class="text-right">${formatCurrency(sale.total)}</td>
                         `;
-                    }
-                    
-                    html += `
-                        <td class="text-center">${sale.traceNumber || '-'}</td>
-                        <td class="text-center"><span class="badge ${sale.boxReturn === '회수' ? 'badge-success' : 'badge-warning'}">${sale.boxReturn}</span></td>
-                    `;
-                    
-                    if (isFirstInGroup) {
+                        
+                        if (isFirstInGroup) {
+                            const paymentBadge = sale.paymentStatus === '입금완료' ? 'badge-success' : 
+                                               sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
+                            
+                            html += `
+                                <td rowspan="${rowSpan}"><span class="badge ${paymentBadge}">${sale.paymentStatus}</span></td>
+                                <td rowspan="${rowSpan}" class="text-right">${formatCurrency(sale.unpaid)}</td>
+                                <td rowspan="${rowSpan}" class="text-center">${sale.delivery}</td>
+                            `;
+                        }
+                        
                         html += `
-                            <td rowspan="${rowSpan}" class="text-center">
-                                <button class="btn btn-sm btn-primary" onclick="generateStatement('${sale.date}', '${sale.customer}')">📄 명세표</button>
-                            </td>
+                            <td class="text-center">${sale.traceNumber || '-'}</td>
+                            <td class="text-center"><span class="badge ${sale.boxReturn === '회수' ? 'badge-success' : 'badge-warning'}">${sale.boxReturn}</span></td>
                         `;
+                        
+                        if (isFirstInGroup) {
+                            html += `
+                                <td rowspan="${rowSpan}" class="text-center">
+                                    <button class="btn btn-sm btn-primary" onclick="generateStatement('${sale.date}', '${sale.customer}')">📄 명세표</button>
+                                </td>
+                            `;
+                        }
+                        
+                        html += `</tr>`;
+                    } catch (e) {
+                        console.error('❌ 행 생성 에러:', e, sale);
                     }
-                    
-                    html += `</tr>`;
                 });
                 
-                tbody.innerHTML = html;
-            } else {
-                tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted">판매 내역이 없습니다</td></tr>';
+                console.log('HTML 길이:', html.length, 'bytes');
+                
+                if (html) {
+                    tbody.innerHTML = html;
+                    console.log('✅ 테이블 렌더링 완료');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-warning">데이터 표시 중 오류 발생</td></tr>';
+                    console.warn('⚠️ HTML 생성 실패');
+                }
+                
+            } catch (error) {
+                console.error('❌ loadSales 전체 에러:', error);
+                console.error('에러 스택:', error.stack);
+                tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger">오류: ' + error.message + '</td></tr>';
             }
         }
 
         async function generateStatement(date, customer) {
-            // 날짜를 YYYY-MM-DD 형식으로 변환
-            const formattedDate = formatDate(date);
-            const result = await createStatement(formattedDate, customer);
-            if (result.success) {
-                alert('거래명세표가 생성되었습니다.');
-                window.open(result.url, '_blank');
-            } else {
-                alert('명세표 생성 실패: ' + result.message);
+            try {
+                console.log('📄 명세표 생성:', date, customer);
+                // 날짜를 YYYY-MM-DD 형식으로 변환
+                const formattedDate = formatDate(date);
+                const result = await createStatement(formattedDate, customer);
+                
+                if (result.success) {
+                    alert('거래명세표가 생성되었습니다.');
+                    window.open(result.url, '_blank');
+                } else {
+                    alert('명세표 생성 실패: ' + result.message);
+                }
+            } catch (error) {
+                console.error('❌ 명세표 생성 에러:', error);
+                alert('명세표 생성 중 오류가 발생했습니다: ' + error.message);
             }
         }
 
         function formatDate(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            try {
+                if (!dateString) {
+                    console.warn('⚠️ formatDate: 빈 날짜');
+                    return '-';
+                }
+                
+                const date = new Date(dateString);
+                
+                // 유효한 날짜인지 확인
+                if (isNaN(date.getTime())) {
+                    console.warn('⚠️ formatDate: 잘못된 날짜:', dateString);
+                    return '-';
+                }
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const formatted = `${year}-${month}-${day}`;
+                
+                // 디버깅용 로그 (처음 몇 개만)
+                if (Math.random() < 0.1) {
+                    console.log('formatDate:', dateString, '→', formatted);
+                }
+                
+                return formatted;
+            } catch (e) {
+                console.error('❌ formatDate 에러:', e, dateString);
+                return '-';
+            }
         }
 
         function formatCurrency(amount) {
-            if (typeof amount !== 'number') return '0';
-            return amount.toLocaleString('ko-KR');
+            try {
+                if (typeof amount !== 'number') {
+                    console.warn('⚠️ formatCurrency: 숫자가 아님:', amount);
+                    return '0';
+                }
+                return amount.toLocaleString('ko-KR');
+            } catch (e) {
+                console.error('❌ formatCurrency 에러:', e, amount);
+                return '0';
+            }
         }
     </script>
 </body>
