@@ -378,35 +378,49 @@
                     const traceNumber = row.querySelector('.item-trace-number').value || '';
 
                     if (itemName && quantity > 0 && price > 0) {
-                        let supplyPrice, vat, total;
+                        let unitSupplyPrice, unitVAT, unitTotal;
                         
                         if (taxType === 'included') {
                             // 부가세 포함: 입력가격이 최종가격
-                            total = price;
-                            supplyPrice = Math.round(price / 1.1);
-                            vat = price - supplyPrice;
+                            unitTotal = price;
+                            unitSupplyPrice = Math.round(price / 1.1);
+                            unitVAT = price - unitSupplyPrice;
                         } else {
                             // 부가세 별도: 입력가격이 공급가액
-                            supplyPrice = price;
-                            vat = Math.round(price * 0.1);
-                            total = price + vat;
+                            unitSupplyPrice = price;
+                            unitVAT = Math.round(price * 0.1);
+                            unitTotal = price + unitVAT;
                         }
+                        
+                        // ✅ v19 수정: 수량 곱하기
+                        const totalSupplyPrice = unitSupplyPrice * quantity;
+                        const totalVAT = unitVAT * quantity;
+                        const totalAmount = unitTotal * quantity;
 
                         sales.push({
                             date: date,
                             customer: customer,
                             item: itemName,
                             quantity: quantity,
-                            price: total,  // 합계 금액
-                            supplyPrice: supplyPrice,
-                            vat: vat,
-                            total: total,
+                            price: unitTotal,  // 단가 (1개당)
+                            supplyPrice: totalSupplyPrice,  // ✅ 총 공급가
+                            vat: totalVAT,  // ✅ 총 부가세
+                            total: totalAmount,  // ✅ 총 금액
                             paymentStatus: paymentStatus,
                             paymentAmount: paymentAmount,
-                            unpaid: total - paymentAmount,
+                            unpaid: totalAmount - paymentAmount,  // ✅ 미수금
                             delivery: delivery,
                             traceNumber: traceNumber,
                             boxReturn: boxReturn
+                        });
+                        
+                        console.log('품목 계산:', {
+                            품목: itemName,
+                            수량: quantity,
+                            단가: unitTotal,
+                            공급가: totalSupplyPrice,
+                            부가세: totalVAT,
+                            총금액: totalAmount
                         });
                     }
                 });
