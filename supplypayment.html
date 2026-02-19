@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지급 관리 - ERP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="index.html">거래명세 관리 시스템</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">대시보드</a></li>
+                <li><a href="sales.html">판매</a></li>
+                <li><a href="payment.html">입금</a></li>
+                <li><a href="purchase.html">입고</a></li>
+                <li><a href="supplypayment.html" class="active">지급</a></li>
+                <li><a href="inventory.html">재고</a></li>
+                <li><a href="accounting.html">회계</a></li>
+                <li><a href="settings.html">설정</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">지급 관리</h1>
+                <p style="color:#666; font-size:14px; margin-top:4px;">공급업체 대금 지급 및 미지급금 관리</p>
+            </div>
+
+            <!-- 지급 등록 -->
+            <section class="card">
+                <h2>지급 등록</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payment-supplier">공급업체 선택 *</label>
+                        <select id="payment-supplier" required onchange="onSupplierSelect(this.value)">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-date">지급일 *</label>
+                        <input type="date" id="payment-date" required>
+                    </div>
+                </div>
+
+                <!-- 미지급 현황 -->
+                <div id="unpaid-section" style="display:none; margin-bottom:20px;">
+                    <div style="background:#fff3e0; border-radius:8px; padding:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <h3 style="margin:0; color:#e65100; font-size:15px;">📋 미지급 현황</h3>
+                            <span id="total-unpaid-badge" style="background:#e65100; color:white; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:bold;"></span>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>입고일</th>
+                                        <th>품목</th>
+                                        <th>수량</th>
+                                        <th>합계</th>
+                                        <th>지급상태</th>
+                                        <th>미지급금</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unpaid-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-unpaid-msg" style="display:none; background:#f5f5f5; padding:16px; border-radius:8px; text-align:center; color:#888; margin-bottom:20px;">
+                    ✅ 미지급금이 없습니다
+                </div>
+
+                <!-- 지급 정보 입력 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payment-amount">지급액 *</label>
+                        <input type="number" id="payment-amount" placeholder="지급액 입력" required oninput="onAmountInput()">
+                        <small id="amount-hint" style="font-size:12px; margin-top:4px; display:block;"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-method">지급방법</label>
+                        <select id="payment-method">
+                            <option value="계좌이체">계좌이체</option>
+                            <option value="현금">현금</option>
+                            <option value="어음">어음</option>
+                            <option value="카드">카드</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-note">비고</label>
+                        <input type="text" id="payment-note" placeholder="메모">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" onclick="handlePaymentSubmit()">💸 지급 등록</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">초기화</button>
+                </div>
+            </section>
+
+            <!-- 지급 내역 -->
+            <section class="card">
+                <h2>지급 내역</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filter-supplier">공급업체 필터</label>
+                        <select id="filter-supplier">
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-start">시작일</label>
+                        <input type="date" id="filter-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-end">종료일</label>
+                        <input type="date" id="filter-end">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="loadPayments()">조회</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>지급일</th>
+                                <th>공급업체</th>
+                                <th>지급액</th>
+                                <th>지급방법</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        let totalUnpaid = 0;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
+            await loadSuppliers();
+            await loadPayments();
+        });
+
+        // ==========================================
+        // 공급업체 로드
+        // ==========================================
+
+        async function loadSuppliers() {
+            try {
+                const result = await getCompanies('공급업체');
+                if (result.success && result.data.length > 0) {
+                    const sel1 = document.getElementById('payment-supplier');
+                    const sel2 = document.getElementById('filter-supplier');
+                    result.data.forEach(c => {
+                        sel1.appendChild(new Option(c.name, c.name));
+                        sel2.appendChild(new Option(c.name, c.name));
+                    });
+                }
+            } catch(e) { console.error('공급업체 로드 에러:', e); }
+        }
+
+        // ==========================================
+        // 공급업체 선택 시 미지급 현황 로드
+        // ==========================================
+
+        async function onSupplierSelect(supplier) {
+            const section = document.getElementById('unpaid-section');
+            const noMsg = document.getElementById('no-unpaid-msg');
+            const tbody = document.getElementById('unpaid-tbody');
+            const badge = document.getElementById('total-unpaid-badge');
+            const hint = document.getElementById('amount-hint');
+
+            totalUnpaid = 0;
+            section.style.display = 'none';
+            noMsg.style.display = 'none';
+            hint.textContent = '';
+
+            if (!supplier) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">로딩 중...</td></tr>';
+            section.style.display = 'block';
+
+            try {
+                const result = await getPurchases({ supplier });
+                if (!result.success) { section.style.display = 'none'; return; }
+
+                // 미지급금 있는 항목만 필터
+                const unpaidList = result.data.filter(p => (p.unpaid || 0) > 0);
+
+                if (unpaidList.length === 0) {
+                    section.style.display = 'none';
+                    noMsg.style.display = 'block';
+                    return;
+                }
+
+                totalUnpaid = unpaidList.reduce((sum, p) => sum + (p.unpaid || 0), 0);
+                badge.textContent = '총 미지급 ' + totalUnpaid.toLocaleString() + '원';
+                hint.textContent = `전체 미지급금: ${totalUnpaid.toLocaleString()}원`;
+                hint.style.color = '#e65100';
+
+                let html = '';
+                unpaidList.forEach(p => {
+                    const statusCls = p.paymentStatus === '부분지급' ? 'badge-warning' : 'badge-danger';
+                    html += `<tr>
+                        <td>${formatDate(p.date)}</td>
+                        <td>${p.item}</td>
+                        <td class="text-center">${p.quantity}</td>
+                        <td class="text-right">${(p.total||0).toLocaleString()}원</td>
+                        <td class="text-center"><span class="badge ${statusCls}">${p.paymentStatus||'미지급'}</span></td>
+                        <td class="text-right" style="color:#e65100; font-weight:bold;">${(p.unpaid||0).toLocaleString()}원</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = html;
+                section.style.display = 'block';
+
+            } catch(e) {
+                console.error('미지급 조회 에러:', e);
+                section.style.display = 'none';
+            }
+        }
+
+        // 지급액 입력 시 힌트
+        function onAmountInput() {
+            const amount = Number(document.getElementById('payment-amount').value) || 0;
+            const hint = document.getElementById('amount-hint');
+            if (totalUnpaid > 0 && amount > 0) {
+                if (amount >= totalUnpaid) {
+                    hint.textContent = `✅ 전체 미지급금 ${totalUnpaid.toLocaleString()}원 완납`;
+                    hint.style.color = '#2e7d32';
+                } else {
+                    hint.textContent = `지급 후 잔여 미지급금: ${(totalUnpaid - amount).toLocaleString()}원`;
+                    hint.style.color = '#e65100';
+                }
+            } else if (totalUnpaid > 0) {
+                hint.textContent = `전체 미지급금: ${totalUnpaid.toLocaleString()}원`;
+                hint.style.color = '#e65100';
+            }
+        }
+
+        // ==========================================
+        // 지급 등록
+        // ==========================================
+
+        async function handlePaymentSubmit() {
+            const supplier = document.getElementById('payment-supplier').value;
+            const date = document.getElementById('payment-date').value;
+            const amount = Number(document.getElementById('payment-amount').value);
+            const method = document.getElementById('payment-method').value;
+            const note = document.getElementById('payment-note').value;
+
+            if (!supplier) { alert('공급업체를 선택해주세요.'); return; }
+            if (!date) { alert('지급일을 입력해주세요.'); return; }
+            if (!amount || amount <= 0) { alert('지급액을 입력해주세요.'); return; }
+
+            if (totalUnpaid > 0 && amount > totalUnpaid) {
+                if (!confirm(`지급액(${amount.toLocaleString()}원)이 미지급금(${totalUnpaid.toLocaleString()}원)보다 많습니다.\n계속 진행하시겠습니까?`)) return;
+            }
+
+            try {
+                const result = await addSupplierPayment({
+                    date, supplier, amount, method,
+                    note: note || (method + ' 지급')
+                });
+
+                if (result.success) {
+                    alert(`${supplier} 지급 ${amount.toLocaleString()}원이 등록되었습니다.\n미지급금이 자동 차감됩니다.`);
+                    resetForm();
+                    await loadPayments();
+                } else {
+                    alert('지급 등록 실패: ' + result.message);
+                }
+            } catch(e) {
+                alert('지급 등록 중 오류: ' + e.message);
+            }
+        }
+
+        // ==========================================
+        // 폼 초기화
+        // ==========================================
+
+        function resetForm() {
+            document.getElementById('payment-supplier').value = '';
+            document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('payment-amount').value = '';
+            document.getElementById('payment-method').value = '계좌이체';
+            document.getElementById('payment-note').value = '';
+            document.getElementById('unpaid-section').style.display = 'none';
+            document.getElementById('no-unpaid-msg').style.display = 'none';
+            document.getElementById('amount-hint').textContent = '';
+            totalUnpaid = 0;
+        }
+
+        // ==========================================
+        // 지급 내역 로드
+        // ==========================================
+
+        async function loadPayments() {
+            const tbody = document.getElementById('payments-tbody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">로딩 중...</td></tr>';
+
+            try {
+                const params = {};
+                const supplier = document.getElementById('filter-supplier').value;
+                const startDate = document.getElementById('filter-start').value;
+                const endDate = document.getElementById('filter-end').value;
+                if (supplier) params.supplier = supplier;
+                if (startDate) params.startDate = startDate;
+                if (endDate) params.endDate = endDate;
+
+                const result = await getSupplierPayments(params);
+
+                if (!result.success || result.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">지급 내역이 없습니다</td></tr>';
+                    return;
+                }
+
+                const sorted = result.data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                let html = '';
+                sorted.forEach(p => {
+                    html += `<tr>
+                        <td>${formatDate(p.date)}</td>
+                        <td>${p.supplier}</td>
+                        <td class="text-right" style="font-weight:bold; color:#e65100;">${(p.amount||0).toLocaleString()}원</td>
+                        <td class="text-center"><span class="badge badge-success">${p.method||'-'}</span></td>
+                        <td>${p.note||'-'}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">오류: ${e.message}</td></tr>`;
+            }
+        }
+
+        function formatDate(dateString) {
+            try {
+                if (!dateString) return '-';
+                const d = new Date(dateString);
+                if (isNaN(d.getTime())) return '-';
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            } catch(e) { return '-'; }
+        }
+    </script>
+
+    <style>
+        .badge-danger {
+            background: #ffebee; color: #c62828;
+            padding: 2px 8px; border-radius: 12px; font-size: 12px;
+        }
+    </style>
+</body>
+</html>
