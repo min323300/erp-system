@@ -67,6 +67,53 @@
                 </form>
             </section>
 
+            <!-- ✅ v18 신규: 거래처별 단가 관리 -->
+            <section class="card">
+                <h2>거래처별 단가 관리</h2>
+                <p style="color:#666; font-size:14px; margin-bottom:16px;">
+                    거래처를 선택하면 전체 품목 단가를 확인하고 수정할 수 있습니다. 단가를 비워두면 기본단가가 적용됩니다.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price-customer">거래처 선택</label>
+                        <select id="price-customer" onchange="loadCustomerPrices(this.value)">
+                            <option value="">거래처를 선택하세요</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn btn-primary" onclick="saveAllPrices()" id="save-all-btn" style="display:none;">
+                            💾 전체 저장
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 단가 테이블 -->
+                <div id="price-table-container" style="display:none;">
+                    <div style="background:#e3f2fd; padding:10px 14px; border-radius:6px; margin-bottom:12px; font-size:13px; color:#1565c0;">
+                        💡 단가 수정 후 <strong>전체 저장</strong> 버튼을 눌러주세요. 빈칸은 기본단가로 적용됩니다.
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>품목명</th>
+                                    <th class="text-center">단위</th>
+                                    <th class="text-right">기본단가</th>
+                                    <th class="text-center" style="width:160px;">전용단가 설정</th>
+                                    <th class="text-center">상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="price-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="price-loading" style="display:none; text-align:center; padding:20px; color:#888;">
+                    ⏳ 단가 불러오는 중...
+                </div>
+            </section>
+
             <!-- 업체 관리 -->
             <section class="card">
                 <h2>업체 관리</h2>
@@ -121,9 +168,7 @@
                                 <th>연락처</th>
                             </tr>
                         </thead>
-                        <tbody id="vendors-tbody">
-                            <!-- 동적으로 생성됨 -->
-                        </tbody>
+                        <tbody id="vendors-tbody"></tbody>
                     </table>
                 </div>
             </section>
@@ -168,9 +213,7 @@
                                 <th>비고</th>
                             </tr>
                         </thead>
-                        <tbody id="items-tbody">
-                            <!-- 동적으로 생성됨 -->
-                        </tbody>
+                        <tbody id="items-tbody"></tbody>
                     </table>
                 </div>
             </section>
@@ -179,11 +222,20 @@
 
     <script src="api.js"></script>
     <script>
+
+        // 전체 품목 캐시
+        let allItemsCache = [];
+
         document.addEventListener('DOMContentLoaded', async function() {
             await loadCompanyInfo();
             await loadVendors();
             await loadItems();
+            await loadCustomerSelectForPrice();
         });
+
+        // ==========================================
+        // 회사 정보
+        // ==========================================
 
         async function loadCompanyInfo() {
             const result = await getMyCompany();
@@ -199,7 +251,6 @@
 
         async function handleCompanySubmit(e) {
             e.preventDefault();
-            
             const formData = {
                 name: document.getElementById('company-name').value,
                 businessNumber: document.getElementById('business-number').value,
@@ -208,19 +259,183 @@
                 address: document.getElementById('address').value,
                 email: document.getElementById('email').value
             };
-
             const result = await saveMyCompany(formData);
-            if (result.success) {
-                alert('회사 정보가 저장되었습니다.');
-            } else {
-                alert('저장 실패: ' + result.message);
+            alert(result.success ? '회사 정보가 저장되었습니다.' : '저장 실패: ' + result.message);
+        }
+
+        // ==========================================
+        // ✅ v18: 거래처별 단가 관리
+        // ==========================================
+
+        // 거래처 셀렉트 로드
+        async function loadCustomerSelectForPrice() {
+            try {
+                const result = await getCompanies();
+                const sel = document.getElementById('price-customer');
+                if (result.success && result.data.length > 0) {
+                    const customers = result.data.filter(c => c.type === '거래처');
+                    customers.forEach(c => {
+                        sel.appendChild(new Option(c.name, c.name));
+                    });
+                }
+
+                // 품목 전체 캐시
+                const itemResult = await getItems();
+                if (itemResult.success) allItemsCache = itemResult.data;
+
+            } catch (e) {
+                console.error('거래처 단가 셀렉트 로드 에러:', e);
             }
         }
+
+        // 거래처 선택 시 단가 테이블 로드
+        async function loadCustomerPrices(company) {
+            const container = document.getElementById('price-table-container');
+            const loading = document.getElementById('price-loading');
+            const saveBtn = document.getElementById('save-all-btn');
+
+            if (!company) {
+                container.style.display = 'none';
+                saveBtn.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'none';
+            loading.style.display = 'block';
+            saveBtn.style.display = 'none';
+
+            try {
+                const result = await getCustomPrices(company);
+                loading.style.display = 'none';
+
+                if (!result.success) {
+                    alert('단가 조회 실패: ' + result.message);
+                    return;
+                }
+
+                const priceMap = {};
+                if (result.data) {
+                    result.data.forEach(item => {
+                        priceMap[item.name] = item;
+                    });
+                }
+
+                let html = '';
+                allItemsCache.forEach(item => {
+                    const priceInfo = priceMap[item.name];
+                    const customPrice = priceInfo && priceInfo.source === 'custom' ? priceInfo.price : '';
+                    const isCustom = customPrice !== '';
+
+                    html += `
+                        <tr id="price-row-${encodeItemName(item.name)}">
+                            <td><strong>${item.name}</strong></td>
+                            <td class="text-center">${item.unit}</td>
+                            <td class="text-right">${item.price.toLocaleString()}원</td>
+                            <td class="text-center">
+                                <input type="number"
+                                    id="custom-price-${encodeItemName(item.name)}"
+                                    data-item="${item.name}"
+                                    data-default="${item.price}"
+                                    value="${customPrice}"
+                                    placeholder="${item.price.toLocaleString()}"
+                                    style="width:120px; text-align:right; padding:4px 8px; border:1px solid #ccc; border-radius:4px; ${isCustom ? 'border-color:#1976d2; background:#e3f2fd;' : ''}"
+                                    oninput="onPriceInputChange(this)"
+                                >
+                            </td>
+                            <td class="text-center" id="status-${encodeItemName(item.name)}">
+                                ${isCustom
+                                    ? `<span style="color:#1976d2; font-weight:bold;">🔵 전용단가</span>`
+                                    : `<span style="color:#888;">기본단가</span>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('price-tbody').innerHTML = html;
+                container.style.display = 'block';
+                saveBtn.style.display = 'inline-block';
+
+            } catch (e) {
+                loading.style.display = 'none';
+                console.error('단가 로드 에러:', e);
+                alert('단가 로드 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 단가 입력 시 상태 실시간 업데이트
+        function onPriceInputChange(input) {
+            const itemName = input.dataset.item;
+            const key = encodeItemName(itemName);
+            const statusEl = document.getElementById(`status-${key}`);
+            const val = input.value.trim();
+
+            if (val !== '') {
+                input.style.borderColor = '#1976d2';
+                input.style.background = '#e3f2fd';
+                if (statusEl) statusEl.innerHTML = `<span style="color:#e65100; font-weight:bold;">✏️ 수정중</span>`;
+            } else {
+                input.style.borderColor = '#ccc';
+                input.style.background = '';
+                if (statusEl) statusEl.innerHTML = `<span style="color:#888;">기본단가</span>`;
+            }
+        }
+
+        // 전체 저장
+        async function saveAllPrices() {
+            const company = document.getElementById('price-customer').value;
+            if (!company) { alert('거래처를 선택해주세요.'); return; }
+
+            const inputs = document.querySelectorAll('#price-tbody input[data-item]');
+            const toSave = [];
+
+            inputs.forEach(input => {
+                const itemName = input.dataset.item;
+                const val = input.value.trim();
+                if (val !== '') {
+                    toSave.push({ item: itemName, price: Number(val) });
+                }
+            });
+
+            if (toSave.length === 0) {
+                alert('저장할 단가가 없습니다.\n단가를 입력해주세요.');
+                return;
+            }
+
+            const saveBtn = document.getElementById('save-all-btn');
+            saveBtn.textContent = '저장 중...';
+            saveBtn.disabled = true;
+
+            let successCount = 0;
+            for (const item of toSave) {
+                const result = await saveCustomPrice(company, item.item, item.price);
+                if (result.success) successCount++;
+            }
+
+            saveBtn.textContent = '💾 전체 저장';
+            saveBtn.disabled = false;
+
+            if (successCount > 0) {
+                alert(`${successCount}개 단가가 저장되었습니다.`);
+                // 테이블 새로고침
+                await loadCustomerPrices(company);
+            } else {
+                alert('저장에 실패했습니다.');
+            }
+        }
+
+        // 품목명 인코딩 (특수문자 처리)
+        function encodeItemName(name) {
+            return name.replace(/[^a-zA-Z0-9가-힣]/g, '_');
+        }
+
+        // ==========================================
+        // 업체 관리
+        // ==========================================
 
         async function loadVendors() {
             const tbody = document.getElementById('vendors-tbody');
             const result = await getCompanies();
-            
             if (result.success && result.data.length > 0) {
                 let html = '';
                 result.data.forEach(vendor => {
@@ -242,7 +457,6 @@
 
         async function handleVendorSubmit(e) {
             e.preventDefault();
-            
             const formData = {
                 name: document.getElementById('vendor-name').value,
                 type: document.getElementById('vendor-type').value,
@@ -251,7 +465,6 @@
                 phone: document.getElementById('vendor-phone').value,
                 address: document.getElementById('vendor-address').value
             };
-
             const result = await addCompany(formData);
             if (result.success) {
                 alert('업체가 추가되었습니다.');
@@ -266,18 +479,22 @@
             document.getElementById('vendor-form').reset();
         }
 
+        // ==========================================
+        // 품목 관리
+        // ==========================================
+
         async function loadItems() {
             const tbody = document.getElementById('items-tbody');
             const result = await getItems();
-            
             if (result.success && result.data.length > 0) {
+                allItemsCache = result.data;
                 let html = '';
                 result.data.forEach(item => {
                     html += `
                         <tr>
                             <td>${item.name}</td>
                             <td class="text-center">${item.unit}</td>
-                            <td class="text-right">${formatCurrency(item.price)}</td>
+                            <td class="text-right">${item.price.toLocaleString()}원</td>
                             <td>${item.note || '-'}</td>
                         </tr>
                     `;
@@ -290,14 +507,12 @@
 
         async function handleItemSubmit(e) {
             e.preventDefault();
-            
             const formData = {
                 name: document.getElementById('item-name').value,
                 unit: document.getElementById('item-unit').value,
                 price: Number(document.getElementById('item-price').value),
                 note: document.getElementById('item-note').value
             };
-
             const result = await addItem(formData);
             if (result.success) {
                 alert('품목이 추가되었습니다.');
@@ -311,6 +526,11 @@
         function resetItemForm() {
             document.getElementById('item-form').reset();
             document.getElementById('item-unit').value = '개';
+        }
+
+        function formatCurrency(amount) {
+            if (!amount) return '0원';
+            return new Intl.NumberFormat('ko-KR').format(amount) + '원';
         }
     </script>
 </body>
