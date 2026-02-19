@@ -388,6 +388,7 @@
                 const taxMode = document.querySelector('input[name="tax-type"]:checked').value;
                 // taxMode: 'included' | 'excluded' | 'exempt'
 
+                // ✅ 1단계: 품목별 금액 계산 (입금 배분 전)
                 const sales = [];
                 document.querySelectorAll('.item-row').forEach(row => {
                     const itemName = row.querySelector('.item-name').value;
@@ -400,7 +401,6 @@
                     let supplyPrice, vat, total;
 
                     if (taxMode === 'exempt') {
-                        // ✅ 면세: 부가세 0, 공급가 = 판매가
                         total = price;
                         supplyPrice = price;
                         vat = 0;
@@ -417,11 +417,37 @@
                     sales.push({
                         date, customer, item: itemName, quantity,
                         price: total, supplyPrice, vat, total,
-                        paymentStatus, paymentAmount,
-                        unpaid: total - paymentAmount,
                         delivery, traceNumber, boxReturn,
-                        taxType: taxMode === 'exempt' ? '면세' : '과세'  // ✅ v18
+                        taxType: taxMode === 'exempt' ? '면세' : '과세'
                     });
+                });
+
+                // ✅ 2단계: 전체 합계 계산 후 입금액 비례 배분
+                const grandTotal = sales.reduce((sum, s) => sum + (s.total * s.quantity), 0);
+                let remainingPayment = paymentAmount;
+
+                sales.forEach((s, idx) => {
+                    const itemTotal = s.total * s.quantity;  // 이 품목의 실제 금액
+
+                    // 마지막 품목은 나머지 입금액 전부 적용 (반올림 오차 방지)
+                    let itemPayment;
+                    if (idx === sales.length - 1) {
+                        itemPayment = remainingPayment;
+                    } else {
+                        // 전체 합계 대비 비례 배분
+                        itemPayment = grandTotal > 0
+                            ? Math.round(paymentAmount * (itemTotal / grandTotal))
+                            : 0;
+                    }
+                    remainingPayment -= itemPayment;
+
+                    // 1개당 입금액/미수금으로 환산해서 저장
+                    const unitPayment = s.quantity > 0 ? Math.round(itemPayment / s.quantity) : 0;
+                    const unitUnpaid = s.total - unitPayment;
+
+                    s.paymentStatus = paymentStatus;
+                    s.paymentAmount = unitPayment;
+                    s.unpaid = unitUnpaid;
                 });
 
                 if (sales.length === 0) { alert('최소 1개 이상의 품목을 입력해주세요.'); return; }
@@ -509,6 +535,14 @@
                     grouped[key].push(sale);
                 });
 
+                // ✅ 그룹별 총 미수금 합산
+                const groupUnpaid = {};
+                Object.keys(grouped).forEach(key => {
+                    groupUnpaid[key] = grouped[key].reduce((sum, s) => {
+                        return sum + ((s.unpaid || 0) * (s.quantity || 1));
+                    }, 0);
+                });
+
                 let html = '';
                 filtered.forEach(sale => {
                     const key = `${formatDate(sale.date)}_${sale.customer}`;
@@ -548,7 +582,7 @@
                             : sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
                         html += `
                             <td rowspan="${rowSpan}"><span class="badge ${badge}">${sale.paymentStatus}</span></td>
-                            <td rowspan="${rowSpan}" class="text-right">${formatCurrency(displayUnpaid)}</td>
+                            <td rowspan="${rowSpan}" class="text-right">${formatCurrency(groupUnpaid[key])}</td>
                             <td rowspan="${rowSpan}" class="text-center">${sale.delivery}</td>
                         `;
                     }
