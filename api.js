@@ -3,7 +3,7 @@
 // v18: getCustomPrices, saveCustomPrice 추가
 // ========================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbySzqrQPCDd5C6vFMPDMHi4Y7xEuk-w7aEot9v7aSskjiJLB70wPSeFu2lBX-r9oqXqcA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzg0BXVXXOAtOoVrcQwp8rOIpz1fuFNRgx9pFoTYdYKr9Tt264K-oCEkackO586AyEBSw/exec';
 
 async function callAPI(action, data = {}) {
     try {
@@ -127,6 +127,18 @@ async function getPurchases(params = {}) {
 
 async function addPurchase(purchaseData) {
     return await callAPI('addPurchase', { data: purchaseData });
+}
+
+// ========================================
+// 지급 관리 (공급업체 대금 지급)
+// ========================================
+
+async function getSupplierPayments(params = {}) {
+    return await callAPI('getSupplierPayments', params);
+}
+
+async function addSupplierPayment(paymentData) {
+    return await callAPI('addSupplierPayment', { data: paymentData });
 }
 
 // ========================================
