@@ -202,8 +202,9 @@
                     <div class="form-group">
                         <label>부가세</label>
                         <select class="item-vat-included" onchange="calculateItemTotal(${itemCounter})">
-                            <option value="true">포함</option>
-                            <option value="false">별도</option>
+                            <option value="included">포함</option>
+                            <option value="excluded">별도</option>
+                            <option value="exempt">면세</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -242,21 +243,38 @@
             const row = document.getElementById(`item-row-${itemId}`);
             const quantity = Number(row.querySelector('.item-quantity').value) || 0;
             const price = Number(row.querySelector('.item-price').value) || 0;
-            const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
-            
+            const vatMode = row.querySelector('.item-vat-included').value;
+            const vatInput = row.querySelector('.item-vat');
+
             let supplyPrice, vat, total;
-            if (vatIncluded) {
+
+            if (vatMode === 'exempt') {
+                // 면세: 부가세 없음
+                total = quantity * price;
+                supplyPrice = total;
+                vat = 0;
+                vatInput.value = '면세';
+                vatInput.style.color = '#388e3c';
+                vatInput.style.fontWeight = 'bold';
+            } else if (vatMode === 'included') {
+                // 부가세 포함
                 total = quantity * price;
                 supplyPrice = Math.round(total / 1.1);
                 vat = total - supplyPrice;
+                vatInput.value = formatCurrency(vat);
+                vatInput.style.color = '';
+                vatInput.style.fontWeight = '';
             } else {
+                // 부가세 별도
                 supplyPrice = quantity * price;
                 vat = Math.round(supplyPrice * 0.1);
                 total = supplyPrice + vat;
+                vatInput.value = formatCurrency(vat);
+                vatInput.style.color = '';
+                vatInput.style.fontWeight = '';
             }
-            
+
             row.querySelector('.item-supply-price').value = formatCurrency(supplyPrice);
-            row.querySelector('.item-vat').value = formatCurrency(vat);
             row.querySelector('.item-total').value = formatCurrency(total);
             calculateGrandTotal();
         }
@@ -266,9 +284,14 @@
             document.querySelectorAll('.item-row').forEach(row => {
                 const quantity = Number(row.querySelector('.item-quantity').value) || 0;
                 const price = Number(row.querySelector('.item-price').value) || 0;
-                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
+                const vatMode = row.querySelector('.item-vat-included').value;
                 let supply, vat, total;
-                if (vatIncluded) {
+
+                if (vatMode === 'exempt') {
+                    total = quantity * price;
+                    supply = total;
+                    vat = 0;
+                } else if (vatMode === 'included') {
                     total = quantity * price;
                     supply = Math.round(total / 1.1);
                     vat = total - supply;
@@ -303,9 +326,14 @@
                 const traceNumber = row.querySelector('.item-trace-number').value;
                 if (!itemSelect.value || !quantity || !price) { hasError = true; return; }
                 
-                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
+                const vatMode = row.querySelector('.item-vat-included').value;
                 let supplyPrice, vat, total;
-                if (vatIncluded) {
+
+                if (vatMode === 'exempt') {
+                    total = quantity * price;
+                    supplyPrice = total;
+                    vat = 0;
+                } else if (vatMode === 'included') {
                     total = quantity * price;
                     supplyPrice = Math.round(total / 1.1);
                     vat = total - supplyPrice;
@@ -314,6 +342,7 @@
                     vat = Math.round(supplyPrice * 0.1);
                     total = supplyPrice + vat;
                 }
+
                 items.push({ date, supplier, item: itemSelect.value, quantity, price, supplyPrice, vat, total, note, traceNumber: traceNumber || '' });
             });
             
