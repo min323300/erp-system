@@ -15,6 +15,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="active">대시보드</a></li>
                 <li><a href="sales.html">판매</a></li>
+                <li><a href="payment.html">입금</a></li>
                 <li><a href="purchase.html">입고</a></li>
                 <li><a href="inventory.html">재고</a></li>
                 <li><a href="accounting.html">회계</a></li>
@@ -48,7 +49,7 @@
                     <div class="stat-icon" style="background: #fff3e0;">⚠️</div>
                     <div class="stat-content">
                         <div class="stat-label">총 미수금</div>
-                        <div class="stat-value" id="total-receivables">0원</div>
+                        <div class="stat-value text-danger" id="total-receivables">0원</div>
                     </div>
                 </div>
 
@@ -65,6 +66,7 @@
                 <h2>빠른 시작</h2>
                 <div class="quick-actions">
                     <a href="sales.html" class="btn btn-primary">📊 판매 등록</a>
+                    <a href="payment.html" class="btn btn-primary">💰 입금 처리</a>
                     <a href="purchase.html" class="btn btn-secondary">📥 입고 등록</a>
                     <a href="settings.html" class="btn btn-secondary">⚙️ 업체 관리</a>
                     <a href="settings.html" class="btn btn-secondary">🏷️ 품목 관리</a>
@@ -82,12 +84,16 @@
         async function loadDashboard() {
             try {
                 const result = await getDashboard();
-                
                 if (result.success) {
                     document.getElementById('monthly-sales').textContent = formatCurrency(result.data.monthlySales);
                     document.getElementById('monthly-profit').textContent = formatCurrency(result.data.monthlyProfit);
                     document.getElementById('total-receivables').textContent = formatCurrency(result.data.totalReceivables);
                     document.getElementById('low-stock').textContent = result.data.lowStockItems + '개';
+
+                    // 미수금 있으면 빨간색
+                    if (result.data.totalReceivables > 0) {
+                        document.getElementById('total-receivables').style.color = '#d32f2f';
+                    }
                 }
             } catch (error) {
                 console.error('대시보드 로드 실패:', error);
