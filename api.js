@@ -160,6 +160,12 @@ async function getMonthlyReport(year, month) {
     return await callAPI('getMonthlyReport', params);
 }
 
+async function getYearlyReport(year) {
+    const params = {};
+    if (year) params.year = year;
+    return await callAPI('getYearlyReport', params);
+}
+
 async function getProfitLoss(startDate, endDate) {
     const params = {};
     if (startDate) params.startDate = startDate;
