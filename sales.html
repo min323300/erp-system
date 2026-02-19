@@ -522,18 +522,25 @@
                                  <td rowspan="${rowSpan}">${sale.customer}</td>`;
                     }
 
-                    // ✅ v18: 면세이면 부가세 칸에 '면세' 표시
+                    // ✅ v18: 수량 곱하기로 실제 금액 계산
+                    const qty = sale.quantity || 1;
+                    const displaySupply = sale.supplyPrice * qty;
+                    const displayVatAmt = sale.vat * qty;
+                    const displayTotal = sale.total * qty;
+                    const displayUnpaid = sale.unpaid * qty;
+
+                    // 면세이면 부가세 칸에 '면세' 표시
                     const vatDisplay = isExempt
                         ? `<span style="color:#2e7d32; font-weight:bold;">면세</span>`
-                        : formatCurrency(sale.vat);
+                        : formatCurrency(displayVatAmt);
 
                     html += `
                         <td>${sale.item}</td>
-                        <td class="text-center">${sale.quantity}</td>
+                        <td class="text-center">${qty}</td>
                         <td class="text-right">${formatCurrency(sale.price)}</td>
-                        <td class="text-right">${formatCurrency(sale.supplyPrice)}</td>
+                        <td class="text-right">${formatCurrency(displaySupply)}</td>
                         <td class="text-right">${vatDisplay}</td>
-                        <td class="text-right">${formatCurrency(sale.total)}</td>
+                        <td class="text-right">${formatCurrency(displayTotal)}</td>
                     `;
 
                     if (isFirst) {
@@ -541,7 +548,7 @@
                             : sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
                         html += `
                             <td rowspan="${rowSpan}"><span class="badge ${badge}">${sale.paymentStatus}</span></td>
-                            <td rowspan="${rowSpan}" class="text-right">${formatCurrency(sale.unpaid)}</td>
+                            <td rowspan="${rowSpan}" class="text-right">${formatCurrency(displayUnpaid)}</td>
                             <td rowspan="${rowSpan}" class="text-center">${sale.delivery}</td>
                         `;
                     }
