@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>입고 관리 - ERP</title>
+    <title>입금 관리 - ERP</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +15,8 @@
             <ul class="nav-menu">
                 <li><a href="index.html">대시보드</a></li>
                 <li><a href="sales.html">판매</a></li>
-                <li><a href="purchase.html" class="active">입고</a></li>
+                <li><a href="payment.html" class="active">입금</a></li>
+                <li><a href="purchase.html">입고</a></li>
                 <li><a href="inventory.html">재고</a></li>
                 <li><a href="accounting.html">회계</a></li>
                 <li><a href="settings.html">설정</a></li>
@@ -24,84 +25,106 @@
 
         <main class="main-content">
             <div class="page-header">
-                <h1 class="page-title">입고 관리</h1>
+                <h1 class="page-title">입금 관리</h1>
             </div>
 
+            <!-- 입금 등록 -->
             <section class="card">
-                <h2>새 입고 등록 (여러 품목)</h2>
-                
-                <div class="common-info-section">
-                    <h3>📅 공통 정보</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="purchase-date">입고일 *</label>
-                            <input type="date" id="purchase-date" required>
+                <h2>입금 등록</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payment-customer">거래처 선택 *</label>
+                        <select id="payment-customer" required onchange="onCustomerSelect(this.value)">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-date">입금일 *</label>
+                        <input type="date" id="payment-date" required>
+                    </div>
+                </div>
+
+                <!-- 미수금 현황 -->
+                <div id="receivables-section" style="display:none; margin-bottom:20px;">
+                    <div style="background:#e3f2fd; border-radius:8px; padding:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <h3 style="margin:0; color:#1565c0; font-size:15px;">📋 미수금 현황</h3>
+                            <span id="total-receivable-badge" style="background:#1976d2; color:white; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:bold;"></span>
                         </div>
-                        <div class="form-group">
-                            <label for="purchase-supplier">공급업체 *</label>
-                            <select id="purchase-supplier" required>
-                                <option value="">선택하세요</option>
-                            </select>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>날짜</th>
+                                        <th>품목</th>
+                                        <th>수량</th>
+                                        <th>합계</th>
+                                        <th>입금상태</th>
+                                        <th>미수금</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="receivables-tbody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="items-section">
-                    <h3>📦 품목 정보</h3>
-                    <div id="items-container"></div>
-                    
-                    <button type="button" class="btn btn-secondary" onclick="addItemRow()" style="margin-top: 1rem;">
-                        ➕ 품목 추가
-                    </button>
+                <div id="no-receivable-msg" style="display:none; background:#f5f5f5; padding:16px; border-radius:8px; text-align:center; color:#888; margin-bottom:20px;">
+                    ✅ 미수금이 없습니다
                 </div>
 
-                <div class="total-section">
-                    <h3>💰 전체 합계</h3>
-                    <div class="total-display">
-                        <div class="total-row">
-                            <span class="total-label">총 공급가:</span>
-                            <span class="total-value" id="total-supply-price">0원</span>
-                        </div>
-                        <div class="total-row">
-                            <span class="total-label">총 부가세:</span>
-                            <span class="total-value" id="total-vat">0원</span>
-                        </div>
-                        <div class="total-row total-main">
-                            <span class="total-label">총 금액:</span>
-                            <span class="total-value" id="total-amount">0원</span>
-                        </div>
+                <!-- 입금 정보 입력 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payment-amount">입금액 *</label>
+                        <input type="number" id="payment-amount" placeholder="입금액 입력" required oninput="onAmountInput()">
+                        <small id="amount-hint" style="color:#888; font-size:12px; margin-top:4px; display:block;"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-method">입금방법</label>
+                        <select id="payment-method">
+                            <option value="계좌이체">계좌이체</option>
+                            <option value="현금">현금</option>
+                            <option value="카드">카드</option>
+                            <option value="어음">어음</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-note">비고</label>
+                        <input type="text" id="payment-note" placeholder="메모">
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-primary" onclick="handleMultiPurchaseSubmit()">일괄 등록</button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">초기화</button>
+                    <button type="button" class="btn btn-primary" onclick="handlePaymentSubmit()">💰 입금 등록</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetPaymentForm()">초기화</button>
                 </div>
             </section>
 
+            <!-- 입금 내역 -->
             <section class="card">
-                <h2>입고 내역</h2>
-                
-                <div class="filter-section">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="filter-supplier">공급업체</label>
-                            <select id="filter-supplier">
-                                <option value="">전체</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="filter-start">시작일</label>
-                            <input type="date" id="filter-start">
-                        </div>
-                        <div class="form-group">
-                            <label for="filter-end">종료일</label>
-                            <input type="date" id="filter-end">
-                        </div>
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <button class="btn btn-primary" onclick="loadPurchases()">조회</button>
-                        </div>
+                <h2>입금 내역</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filter-customer">거래처 필터</label>
+                        <select id="filter-customer">
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-start">시작일</label>
+                        <input type="date" id="filter-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-end">종료일</label>
+                        <input type="date" id="filter-end">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="loadPayments()">조회</button>
                     </div>
                 </div>
 
@@ -109,18 +132,14 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>입고일</th>
-                                <th>공급업체</th>
-                                <th>품목</th>
-                                <th>수량</th>
-                                <th>단가</th>
-                                <th>공급가</th>
-                                <th>부가세</th>
-                                <th>합계</th>
+                                <th>입금일</th>
+                                <th>거래처</th>
+                                <th>입금액</th>
+                                <th>입금방법</th>
                                 <th>비고</th>
                             </tr>
                         </thead>
-                        <tbody id="purchases-tbody"></tbody>
+                        <tbody id="payments-tbody"></tbody>
                     </table>
                 </div>
             </section>
@@ -129,315 +148,233 @@
 
     <script src="api.js"></script>
     <script>
-        let itemCounter = 0;
-        let availableItems = [];
+        let currentReceivables = [];
+        let totalReceivable = 0;
 
         document.addEventListener('DOMContentLoaded', async function() {
-            setTodayDate();
-            await loadSuppliers();
-            await loadItems();
-            await loadPurchases();
-            addItemRow();
+            document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
+            await loadCustomers();
+            await loadPayments();
         });
 
-        function setTodayDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('purchase-date').value = today;
-        }
+        // ==========================================
+        // 거래처 로드
+        // ==========================================
 
-        async function loadSuppliers() {
-            const result = await getCompanies('공급업체');
-            if (result.success && result.data.length > 0) {
-                const select = document.getElementById('purchase-supplier');
-                const filterSelect = document.getElementById('filter-supplier');
-                
-                select.innerHTML = '<option value="">선택하세요</option>';
-                filterSelect.innerHTML = '<option value="">전체</option>';
-                
-                result.data.forEach(company => {
-                    select.innerHTML += `<option value="${company.name}">${company.name}</option>`;
-                    filterSelect.innerHTML += `<option value="${company.name}">${company.name}</option>`;
-                });
-            }
-        }
-
-        async function loadItems() {
-            const result = await getItems();
-            if (result.success && result.data.length > 0) {
-                availableItems = result.data;
-            }
-        }
-
-        function addItemRow() {
-            itemCounter++;
-            const container = document.getElementById('items-container');
-            
-            const itemRow = document.createElement('div');
-            itemRow.className = 'item-row';
-            itemRow.id = `item-row-${itemCounter}`;
-            
-            let itemOptions = '<option value="">선택하세요</option>';
-            availableItems.forEach(item => {
-                itemOptions += `<option value="${item.name}">${item.name}</option>`;
-            });
-            
-            itemRow.innerHTML = `
-                <div class="item-row-header">
-                    <h4>품목 ${itemCounter}</h4>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItemRow(${itemCounter})">🗑️ 삭제</button>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>품목 *</label>
-                        <select class="item-select" required>
-                            ${itemOptions}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>수량 *</label>
-                        <input type="number" class="item-quantity" min="0" step="0.01" value="1" oninput="calculateItemTotal(${itemCounter})" required>
-                    </div>
-                    <div class="form-group">
-                        <label>단가 *</label>
-                        <input type="number" class="item-price" min="0" oninput="calculateItemTotal(${itemCounter})" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>부가세</label>
-                        <select class="item-vat-included" onchange="calculateItemTotal(${itemCounter})">
-                            <option value="true">포함</option>
-                            <option value="false">별도</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>공급가</label>
-                        <input type="text" class="item-supply-price" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>부가세</label>
-                        <input type="text" class="item-vat" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>합계</label>
-                        <input type="text" class="item-total" readonly>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>비고</label>
-                        <input type="text" class="item-note" placeholder="입고 관련 메모">
-                    </div>
-                    <div class="form-group">
-                        <label>이력번호</label>
-                        <input type="text" class="item-trace-number" placeholder="012345678901" maxlength="20">
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(itemRow);
-        }
-
-        function removeItemRow(itemId) {
-            const row = document.getElementById(`item-row-${itemId}`);
-            if (row) {
-                row.remove();
-                calculateGrandTotal();
-            }
-        }
-
-        function calculateItemTotal(itemId) {
-            const row = document.getElementById(`item-row-${itemId}`);
-            const quantity = Number(row.querySelector('.item-quantity').value) || 0;
-            const price = Number(row.querySelector('.item-price').value) || 0;
-            const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
-            
-            let supplyPrice, vat, total;
-            
-            if (vatIncluded) {
-                total = quantity * price;
-                supplyPrice = Math.round(total / 1.1);
-                vat = total - supplyPrice;
-            } else {
-                supplyPrice = quantity * price;
-                vat = Math.round(supplyPrice * 0.1);
-                total = supplyPrice + vat;
-            }
-            
-            row.querySelector('.item-supply-price').value = formatCurrency(supplyPrice);
-            row.querySelector('.item-vat').value = formatCurrency(vat);
-            row.querySelector('.item-total').value = formatCurrency(total);
-            
-            calculateGrandTotal();
-        }
-
-        function calculateGrandTotal() {
-            const rows = document.querySelectorAll('.item-row');
-            let totalSupply = 0;
-            let totalVat = 0;
-            let grandTotal = 0;
-            
-            rows.forEach(row => {
-                const quantity = Number(row.querySelector('.item-quantity').value) || 0;
-                const price = Number(row.querySelector('.item-price').value) || 0;
-                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
-                
-                let supply, vat, total;
-                
-                if (vatIncluded) {
-                    total = quantity * price;
-                    supply = Math.round(total / 1.1);
-                    vat = total - supply;
-                } else {
-                    supply = quantity * price;
-                    vat = Math.round(supply * 0.1);
-                    total = supply + vat;
+        async function loadCustomers() {
+            try {
+                const result = await getCompanies();
+                if (result.success && result.data.length > 0) {
+                    const customers = result.data.filter(c => c.type === '거래처');
+                    const sel1 = document.getElementById('payment-customer');
+                    const sel2 = document.getElementById('filter-customer');
+                    customers.forEach(c => {
+                        sel1.appendChild(new Option(c.name, c.name));
+                        sel2.appendChild(new Option(c.name, c.name));
+                    });
                 }
-                
-                totalSupply += supply;
-                totalVat += vat;
-                grandTotal += total;
-            });
-            
-            document.getElementById('total-supply-price').textContent = formatCurrency(totalSupply);
-            document.getElementById('total-vat').textContent = formatCurrency(totalVat);
-            document.getElementById('total-amount').textContent = formatCurrency(grandTotal);
+            } catch(e) { console.error('거래처 로드 에러:', e); }
         }
 
-        async function handleMultiPurchaseSubmit() {
-            const supplier = document.getElementById('purchase-supplier').value;
-            const date = document.getElementById('purchase-date').value;
-            
-            if (!supplier || !date) {
-                alert('입고일과 공급업체를 선택해주세요.');
-                return;
-            }
-            
-            const rows = document.querySelectorAll('.item-row');
-            if (rows.length === 0) {
-                alert('최소 1개 이상의 품목을 추가해주세요.');
-                return;
-            }
-            
-            const items = [];
-            let hasError = false;
-            
-            rows.forEach(row => {
-                const itemSelect = row.querySelector('.item-select');
-                const quantity = Number(row.querySelector('.item-quantity').value);
-                const price = Number(row.querySelector('.item-price').value);
-                const note = row.querySelector('.item-note').value;
-                const traceNumber = row.querySelector('.item-trace-number').value;
-                
-                if (!itemSelect.value || !quantity || !price) {
-                    hasError = true;
+        // ==========================================
+        // 거래처 선택 시 미수금 현황 로드
+        // ==========================================
+
+        async function onCustomerSelect(company) {
+            const section = document.getElementById('receivables-section');
+            const noMsg = document.getElementById('no-receivable-msg');
+            const tbody = document.getElementById('receivables-tbody');
+            const badge = document.getElementById('total-receivable-badge');
+            const hint = document.getElementById('amount-hint');
+
+            currentReceivables = [];
+            totalReceivable = 0;
+            section.style.display = 'none';
+            noMsg.style.display = 'none';
+            hint.textContent = '';
+
+            if (!company) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">로딩 중...</td></tr>';
+            section.style.display = 'block';
+
+            try {
+                const result = await getSales({ customer: company });
+                if (!result.success) { section.style.display = 'none'; return; }
+
+                // 미수금 있는 항목만 필터
+                const unpaidSales = result.data.filter(s => (s.unpaid * (s.quantity||1)) > 0);
+
+                if (unpaidSales.length === 0) {
+                    section.style.display = 'none';
+                    noMsg.style.display = 'block';
                     return;
                 }
-                
-                const vatIncluded = row.querySelector('.item-vat-included').value === 'true';
-                
-                let supplyPrice, vat, total;
-                
-                if (vatIncluded) {
-                    total = quantity * price;
-                    supplyPrice = Math.round(total / 1.1);
-                    vat = total - supplyPrice;
-                } else {
-                    supplyPrice = quantity * price;
-                    vat = Math.round(supplyPrice * 0.1);
-                    total = supplyPrice + vat;
-                }
-                
-                items.push({
-                    date: date,
-                    supplier: supplier,
-                    item: itemSelect.value,
-                    quantity: quantity,
-                    price: price,
-                    supplyPrice: supplyPrice,
-                    vat: vat,
-                    total: total,
-                    note: note,
-                    traceNumber: traceNumber || ''
-                });
-            });
-            
-            if (hasError) {
-                alert('모든 품목의 정보를 입력해주세요.');
-                return;
-            }
-            
-            let successCount = 0;
-            for (const item of items) {
-                const result = await addPurchase(item);
-                if (result.success) {
-                    successCount++;
-                }
-            }
-            
-            if (successCount === items.length) {
-                alert(`${successCount}개 품목이 입고 등록되었습니다.`);
-                resetForm();
-                await loadPurchases();
-            } else {
-                alert(`${successCount}/${items.length}개 품목이 등록되었습니다.`);
-                await loadPurchases();
-            }
-        }
 
-        function resetForm() {
-            document.getElementById('purchase-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('purchase-supplier').value = '';
-            
-            document.getElementById('items-container').innerHTML = '';
-            itemCounter = 0;
-            addItemRow();
-            
-            calculateGrandTotal();
-        }
+                currentReceivables = unpaidSales;
+                totalReceivable = unpaidSales.reduce((sum, s) => sum + (s.unpaid * (s.quantity||1)), 0);
 
-        async function loadPurchases() {
-            const tbody = document.getElementById('purchases-tbody');
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center">로딩 중...</td></tr>';
-            
-            const params = {};
-            const supplier = document.getElementById('filter-supplier').value;
-            const startDate = document.getElementById('filter-start').value;
-            const endDate = document.getElementById('filter-end').value;
-            
-            if (supplier) params.supplier = supplier;
-            if (startDate) params.startDate = startDate;
-            if (endDate) params.endDate = endDate;
-            
-            const result = await getPurchases(params);
-            
-            if (result.success) {
-                if (result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">입고 내역이 없습니다</td></tr>';
-                    return;
-                }
-                
+                badge.textContent = '총 미수금 ' + totalReceivable.toLocaleString() + '원';
+                hint.textContent = `전체 미수금: ${totalReceivable.toLocaleString()}원`;
+                hint.style.color = '#c62828';
+
                 let html = '';
-                result.data.forEach(purchase => {
-                    html += `
-                        <tr>
-                            <td>${formatDate(purchase.date)}</td>
-                            <td>${purchase.supplier}</td>
-                            <td>${purchase.item}</td>
-                            <td class="text-right">${purchase.quantity}</td>
-                            <td class="text-right">${formatCurrency(purchase.price)}</td>
-                            <td class="text-right">${formatCurrency(purchase.supplyPrice)}</td>
-                            <td class="text-right">${formatCurrency(purchase.vat)}</td>
-                            <td class="text-right"><strong>${formatCurrency(purchase.total)}</strong></td>
-                            <td>${purchase.note || '-'}</td>
-                        </tr>
-                    `;
+                unpaidSales.forEach(sale => {
+                    const qty = sale.quantity || 1;
+                    const totalAmt = (sale.total || 0) * qty;
+                    const unpaidAmt = (sale.unpaid || 0) * qty;
+                    const badgeCls = sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
+
+                    html += `<tr>
+                        <td>${formatDate(sale.date)}</td>
+                        <td>${sale.item}</td>
+                        <td class="text-center">${qty}</td>
+                        <td class="text-right">${totalAmt.toLocaleString()}</td>
+                        <td class="text-center"><span class="badge ${badgeCls}">${sale.paymentStatus}</span></td>
+                        <td class="text-right" style="color:#c62828; font-weight:bold;">${unpaidAmt.toLocaleString()}원</td>
+                    </tr>`;
                 });
-                
+
                 tbody.innerHTML = html;
-            } else {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">입고 내역을 불러올 수 없습니다</td></tr>';
+                section.style.display = 'block';
+
+            } catch(e) {
+                console.error('미수금 조회 에러:', e);
+                section.style.display = 'none';
             }
+        }
+
+        // 입금액 입력 시 힌트 업데이트
+        function onAmountInput() {
+            const amount = Number(document.getElementById('payment-amount').value) || 0;
+            const hint = document.getElementById('amount-hint');
+            if (totalReceivable > 0 && amount > 0) {
+                if (amount >= totalReceivable) {
+                    hint.textContent = `✅ 전체 미수금 ${totalReceivable.toLocaleString()}원 완납`;
+                    hint.style.color = '#2e7d32';
+                } else {
+                    const remaining = totalReceivable - amount;
+                    hint.textContent = `입금 후 잔여 미수금: ${remaining.toLocaleString()}원`;
+                    hint.style.color = '#e65100';
+                }
+            } else if (totalReceivable > 0) {
+                hint.textContent = `전체 미수금: ${totalReceivable.toLocaleString()}원`;
+                hint.style.color = '#c62828';
+            }
+        }
+
+        // ==========================================
+        // 입금 등록
+        // ==========================================
+
+        async function handlePaymentSubmit() {
+            const company = document.getElementById('payment-customer').value;
+            const date = document.getElementById('payment-date').value;
+            const amount = Number(document.getElementById('payment-amount').value);
+            const method = document.getElementById('payment-method').value;
+            const note = document.getElementById('payment-note').value;
+
+            if (!company) { alert('거래처를 선택해주세요.'); return; }
+            if (!date) { alert('입금일을 입력해주세요.'); return; }
+            if (!amount || amount <= 0) { alert('입금액을 입력해주세요.'); return; }
+
+            if (totalReceivable > 0 && amount > totalReceivable) {
+                const confirm = window.confirm(`입금액(${amount.toLocaleString()}원)이 미수금(${totalReceivable.toLocaleString()}원)보다 많습니다.\n계속 진행하시겠습니까?`);
+                if (!confirm) return;
+            }
+
+            try {
+                const result = await addPayment({
+                    date, company, amount, method,
+                    note: note || (method + ' 입금')
+                });
+
+                if (result.success) {
+                    alert(`${company} 입금 ${amount.toLocaleString()}원이 등록되었습니다.\n미수금이 자동 차감됩니다.`);
+                    resetPaymentForm();
+                    await loadPayments();
+                } else {
+                    alert('입금 등록 실패: ' + result.message);
+                }
+            } catch(e) {
+                alert('입금 등록 중 오류: ' + e.message);
+            }
+        }
+
+        // ==========================================
+        // 폼 초기화
+        // ==========================================
+
+        function resetPaymentForm() {
+            document.getElementById('payment-customer').value = '';
+            document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('payment-amount').value = '';
+            document.getElementById('payment-method').value = '계좌이체';
+            document.getElementById('payment-note').value = '';
+            document.getElementById('receivables-section').style.display = 'none';
+            document.getElementById('no-receivable-msg').style.display = 'none';
+            document.getElementById('amount-hint').textContent = '';
+            currentReceivables = [];
+            totalReceivable = 0;
+        }
+
+        // ==========================================
+        // 입금 내역 로드
+        // ==========================================
+
+        async function loadPayments() {
+            const tbody = document.getElementById('payments-tbody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">로딩 중...</td></tr>';
+
+            try {
+                const params = {};
+                const customer = document.getElementById('filter-customer').value;
+                const startDate = document.getElementById('filter-start').value;
+                const endDate = document.getElementById('filter-end').value;
+                if (customer) params.company = customer;
+                if (startDate) params.startDate = startDate;
+                if (endDate) params.endDate = endDate;
+
+                const result = await getPayments(params);
+
+                if (!result.success || result.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">입금 내역이 없습니다</td></tr>';
+                    return;
+                }
+
+                // 최신순 정렬
+                const sorted = result.data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                let html = '';
+                sorted.forEach(p => {
+                    const methodBadge = p.method === '판매등록' ? 'badge-info' : 'badge-success';
+                    html += `<tr>
+                        <td>${formatDate(p.date)}</td>
+                        <td>${p.company}</td>
+                        <td class="text-right" style="font-weight:bold; color:#1976d2;">${p.amount.toLocaleString()}원</td>
+                        <td class="text-center"><span class="badge ${methodBadge}">${p.method||'-'}</span></td>
+                        <td>${p.note||'-'}</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = html;
+
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">오류: ${e.message}</td></tr>`;
+            }
+        }
+
+        // ==========================================
+        // 유틸
+        // ==========================================
+
+        function formatDate(dateString) {
+            try {
+                if (!dateString) return '-';
+                const d = new Date(dateString);
+                if (isNaN(d.getTime())) return '-';
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            } catch(e) { return '-'; }
         }
     </script>
 
@@ -451,63 +388,12 @@
             border-radius: 8px;
         }
 
-        .item-row {
-            background: white;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .item-row-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #1976d2;
-        }
-
-        .item-row-header h4 {
-            margin: 0;
-            color: #1976d2;
-        }
-
-        .total-display {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .total-row.total-main {
-            border-bottom: none;
-            border-top: 2px solid #1976d2;
-            padding-top: 1rem;
-            margin-top: 0.5rem;
-        }
-
-        .total-row.total-main .total-label,
-        .total-row.total-main .total-value {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #1976d2;
-        }
-
-        @media (max-width: 768px) {
-            .item-row {
-                padding: 1rem;
-            }
-
-            .item-row-header h4 {
-                font-size: 1rem;
-            }
+        .badge-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
         }
     </style>
 </body>
