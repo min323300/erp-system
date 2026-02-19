@@ -3,7 +3,7 @@
 // v18: getCustomPrices, saveCustomPrice 추가
 // ========================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyLKn8HtT5ReF8qtiCrfsHpdimC0plTsUY8jB3ISs4U49WyoxIhk9kC248_vXUYe4bMOA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDuefqneUMGlBBv8BITtvprNoQvzRvLWhGQfUhuR1bMpf5Lty2EsjmaqEOH0NrKFhd3Q/exec';
 
 async function callAPI(action, data = {}) {
     try {
