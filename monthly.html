@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>월별 집계 - ERP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="index.html">거래명세 관리 시스템</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">대시보드</a></li>
+                <li><a href="sales.html">판매</a></li>
+                <li><a href="payment.html">입금</a></li>
+                <li><a href="purchase.html">입고</a></li>
+                <li><a href="supplypayment.html">지급</a></li>
+                <li><a href="inventory.html">재고</a></li>
+                <li><a href="accounting.html">회계</a></li>
+                <li><a href="monthly.html" class="active">월별집계</a></li>
+                <li><a href="settings.html">설정</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">월별 집계</h1>
+            </div>
+
+            <section class="card">
+                <!-- 연도 선택 -->
+                <div class="form-row" style="align-items:flex-end; margin-bottom:20px;">
+                    <div class="form-group">
+                        <label for="report-year">연도</label>
+                        <select id="report-year" onchange="loadReport()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="loadReport()">🔄 조회</button>
+                    </div>
+                </div>
+
+                <!-- 요약 카드 -->
+                <div id="summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px;">
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background:#e3f2fd;">💵</div>
+                        <div class="stat-content">
+                            <div class="stat-label">연간 총매출</div>
+                            <div class="stat-value" id="sum-total-sales" style="font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background:#fff3e0;">🧾</div>
+                        <div class="stat-content">
+                            <div class="stat-label">연간 매출부가세</div>
+                            <div class="stat-value" id="sum-sales-vat" style="font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background:#f3e5f5;">🌿</div>
+                        <div class="stat-content">
+                            <div class="stat-label">연간 면세매출</div>
+                            <div class="stat-value" id="sum-exempt" style="font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background:#ffebee;">📦</div>
+                        <div class="stat-content">
+                            <div class="stat-label">연간 총입고</div>
+                            <div class="stat-value" id="sum-purchase" style="font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background:#e8f5e9;">💰</div>
+                        <div class="stat-content">
+                            <div class="stat-label">연간 순이익</div>
+                            <div class="stat-value" id="sum-profit" style="font-size:1.1rem;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 월별 테이블 -->
+                <div class="table-responsive">
+                    <table id="monthly-table">
+                        <thead>
+                            <tr>
+                                <th style="width:60px;">월</th>
+                                <th class="text-right">과세매출<br><small style="font-weight:normal;">(공급가)</small></th>
+                                <th class="text-right">매출<br>부가세</th>
+                                <th class="text-right">면세<br>매출</th>
+                                <th class="text-right" style="background:#e3f2fd;">총 매출</th>
+                                <th class="text-right">총 입고</th>
+                                <th class="text-right">입고<br>부가세</th>
+                                <th class="text-right" style="background:#e8f5e9;">순 이익</th>
+                                <th class="text-right">이익률</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-tbody">
+                            <tr><td colspan="9" class="text-center">로딩 중...</td></tr>
+                        </tbody>
+                        <tfoot id="monthly-tfoot"></tfoot>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initYearSelect();
+            loadReport();
+        });
+
+        function initYearSelect() {
+            const sel = document.getElementById('report-year');
+            const now = new Date().getFullYear();
+            for (let y = now; y >= now - 3; y--) {
+                sel.appendChild(new Option(y + '년', y));
+            }
+        }
+
+        async function loadReport() {
+            const year = document.getElementById('report-year').value;
+            const tbody = document.getElementById('monthly-tbody');
+            const tfoot = document.getElementById('monthly-tfoot');
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center">로딩 중...</td></tr>';
+            tfoot.innerHTML = '';
+
+            try {
+                const result = await getYearlyReport(year);
+                if (!result.success) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">${result.message}</td></tr>`;
+                    return;
+                }
+
+                const { months, totals } = result.data;
+
+                // 요약 카드 업데이트
+                document.getElementById('sum-total-sales').textContent = fmt(totals.totalSales);
+                document.getElementById('sum-total-sales').style.color = '#1976d2';
+                document.getElementById('sum-sales-vat').textContent = fmt(totals.salesVat);
+                document.getElementById('sum-exempt').textContent = fmt(totals.exemptSales);
+                document.getElementById('sum-exempt').style.color = '#388e3c';
+                document.getElementById('sum-purchase').textContent = fmt(totals.totalPurchase);
+                document.getElementById('sum-profit').textContent = fmt(totals.profit);
+                document.getElementById('sum-profit').style.color = totals.profit >= 0 ? '#2e7d32' : '#d32f2f';
+
+                // 월별 행
+                let html = '';
+                months.forEach(m => {
+                    const hasData = m.totalSales > 0 || m.totalPurchase > 0;
+                    const margin = m.totalSales > 0 ? Math.round((m.profit / m.totalSales) * 100) : 0;
+                    const rowStyle = hasData ? '' : 'color:#ccc;';
+                    const profitColor = m.profit > 0 ? '#2e7d32' : m.profit < 0 ? '#d32f2f' : '#999';
+                    const marginColor = margin >= 20 ? '#2e7d32' : margin >= 10 ? '#f57c00' : margin < 0 ? '#d32f2f' : '#999';
+
+                    html += `<tr style="${rowStyle}">
+                        <td class="text-center"><strong>${m.month}월</strong></td>
+                        <td class="text-right">${hasData ? fmt(m.taxSales) : '-'}</td>
+                        <td class="text-right">${hasData ? fmt(m.salesVat) : '-'}</td>
+                        <td class="text-right" style="color:#388e3c;">${m.exemptSales > 0 ? fmt(m.exemptSales) : '-'}</td>
+                        <td class="text-right" style="background:#f5faff; font-weight:bold; color:#1976d2;">${hasData ? fmt(m.totalSales) : '-'}</td>
+                        <td class="text-right">${hasData ? fmt(m.totalPurchase) : '-'}</td>
+                        <td class="text-right">${hasData ? fmt(m.purchaseVat) : '-'}</td>
+                        <td class="text-right" style="background:#f5fff5; font-weight:bold; color:${profitColor};">${hasData ? fmt(m.profit) : '-'}</td>
+                        <td class="text-right" style="color:${marginColor};">${hasData ? margin + '%' : '-'}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+
+                // 합계 행
+                const totalMargin = totals.totalSales > 0 ? Math.round((totals.profit / totals.totalSales) * 100) : 0;
+                tfoot.innerHTML = `<tr style="background:#1976d2; color:white; font-weight:bold;">
+                    <td class="text-center">합계</td>
+                    <td class="text-right">${fmt(totals.taxSales)}</td>
+                    <td class="text-right">${fmt(totals.salesVat)}</td>
+                    <td class="text-right">${fmt(totals.exemptSales)}</td>
+                    <td class="text-right" style="background:#1565c0;">${fmt(totals.totalSales)}</td>
+                    <td class="text-right">${fmt(totals.totalPurchase)}</td>
+                    <td class="text-right">${fmt(totals.purchaseVat)}</td>
+                    <td class="text-right" style="background:${totals.profit>=0?'#1b5e20':'#b71c1c'};">${fmt(totals.profit)}</td>
+                    <td class="text-right">${totalMargin}%</td>
+                </tr>`;
+
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">오류: ${e.message}</td></tr>`;
+            }
+        }
+
+        function fmt(n) {
+            if (!n && n !== 0) return '-';
+            return Number(n).toLocaleString() + '원';
+        }
+    </script>
+
+    <style>
+        #monthly-table th { 
+            background: #1976d2; color: white; 
+            text-align: center; padding: 10px 8px;
+            font-size: 13px; line-height: 1.4;
+        }
+        #monthly-table td { padding: 10px 12px; font-size: 13px; }
+        #monthly-table tbody tr:hover { background: #f0f7ff !important; }
+        #monthly-table tfoot td { padding: 12px; font-size: 14px; }
+        .stat-value { font-size: 1rem !important; }
+    </style>
+</body>
+</html>
