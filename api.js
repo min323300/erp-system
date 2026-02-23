@@ -7,7 +7,7 @@
 // ✅ 업체별 API URL 설정
 const COMPANY_URLS = {
   sungsim:   'https://script.google.com/macros/s/AKfycbySzqrQPCDd5C6vFMPDMHi4Y7xEuk-w7aEot9v7aSskjiJLB70wPSeFu2lBX-r9oqXqcA/exec',  // 성심
-  bscompany: 'https://script.google.com/macros/s/AKfycby1QZ2cAojUj3vrfzQzCZxu9vblnqsufJLTgCQKRvxLZYcgMLnBgvhk38tuyLztz9ueXQ/exec',  // 비에스컴퍼니
+  bscompany: 'https://script.google.com/macros/s/AKfycbxQo49dolbpHIOQX2XUPaiTBamxsYSrKBB8vYDRaBR5t8AiA1KpsoAF82IMZHf7oweb/exec',  // 비에스컴퍼니
   spare:     'https://여기에_예비업체_URL_입력/exec',                                                                                    // 예비
 };
 
