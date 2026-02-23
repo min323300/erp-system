@@ -205,7 +205,7 @@
                 if (!result.success) { section.style.display = 'none'; return; }
 
                 // 미수금 있는 항목만 필터
-                const unpaidSales = result.data.filter(s => (s.unpaid * (s.quantity||1)) > 0);
+                const unpaidSales = result.data.filter(s => (s.unpaid || 0) > 0);
 
                 if (unpaidSales.length === 0) {
                     section.style.display = 'none';
@@ -214,7 +214,7 @@
                 }
 
                 currentReceivables = unpaidSales;
-                totalReceivable = unpaidSales.reduce((sum, s) => sum + (s.unpaid * (s.quantity||1)), 0);
+                totalReceivable = unpaidSales.reduce((sum, s) => sum + (s.unpaid || 0), 0);
 
                 badge.textContent = '총 미수금 ' + totalReceivable.toLocaleString() + '원';
                 hint.textContent = `전체 미수금: ${totalReceivable.toLocaleString()}원`;
@@ -223,8 +223,8 @@
                 let html = '';
                 unpaidSales.forEach(sale => {
                     const qty = sale.quantity || 1;
-                    const totalAmt = (sale.total || 0) * qty;
-                    const unpaidAmt = (sale.unpaid || 0) * qty;
+                    const totalAmt = sale.total || 0;   // 이미 총액
+                    const unpaidAmt = sale.unpaid || 0; // 이미 총액
                     const badgeCls = sale.paymentStatus === '부분입금' ? 'badge-warning' : 'badge-danger';
 
                     html += `<tr>
