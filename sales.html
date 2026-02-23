@@ -417,9 +417,17 @@
                         total = price + vat;
                     }
 
+                    // ✅ 수량 × 단가로 실제 합계 계산
+                    const totalSupply = supplyPrice * quantity;
+                    const totalVat = vat * quantity;
+                    const totalAmount = total * quantity;
+
                     sales.push({
                         date, customer, item: itemName, quantity,
-                        price: total, supplyPrice, vat, total,
+                        price: total,           // 단가
+                        supplyPrice: totalSupply,  // 실제 공급가 합계
+                        vat: totalVat,             // 실제 부가세 합계
+                        total: totalAmount,        // 실제 합계금액
                         delivery, traceNumber, boxReturn,
                         taxType: taxMode === 'exempt' ? '면세' : '과세'
                     });
@@ -538,7 +546,6 @@
                     grouped[key].push(sale);
                 });
 
-                // ✅ 그룹별 총 미수금 합산
                 const groupUnpaid = {};
                 Object.keys(grouped).forEach(key => {
                     groupUnpaid[key] = grouped[key].reduce((sum, s) => {
@@ -559,11 +566,11 @@
                                  <td rowspan="${rowSpan}">${sale.customer}</td>`;
                     }
 
-                    // ✅ v18: 수량 곱하기로 실제 금액 계산
+                    // ✅ 이미 합계금액으로 저장되므로 qty 곱하기 불필요
                     const qty = sale.quantity || 1;
-                    const displaySupply = sale.supplyPrice * qty;
-                    const displayVatAmt = sale.vat * qty;
-                    const displayTotal = sale.total * qty;
+                    const displaySupply = sale.supplyPrice;
+                    const displayVatAmt = sale.vat;
+                    const displayTotal = sale.total;
                     const displayUnpaid = sale.unpaid * qty;
 
                     // 면세이면 부가세 칸에 '면세' 표시
