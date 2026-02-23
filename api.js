@@ -1,9 +1,28 @@
 // ========================================
 // ERP Lite v18 - API 통신 모듈 (GET 전용)
 // v18: getCustomPrices, saveCustomPrice 추가
+// v18.1: 멀티 업체 지원 (?co=업체코드)
 // ========================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycby1QZ2cAojUj3vrfzQzCZxu9vblnqsufJLTgCQKRvxLZYcgMLnBgvhk30tuYLztz9ueXQ/exec';
+// ✅ 업체별 API URL 설정
+const COMPANY_URLS = {
+  sungsim:   'https://script.google.com/macros/s/AKfycbySzqrQPCDd5C6vFMPDMHi4Y7xEuk-w7aEot9v7aSskjiJLB70wPSeFu2lBX-r9oqXqcA/exec',  // 성심
+  bscompany: 'https://script.google.com/macros/s/AKfycby1QZ2cAojUj3vrfzQzCZxu9vblnqsufJLTgCQKRvxLZYcgMLnBgvhk38tuyLztz9ueXQ/exec',  // 비에스컴퍼니
+  spare:     'https://여기에_예비업체_URL_입력/exec',                                                                                    // 예비
+};
+
+// URL 파라미터에서 업체 코드 읽기 (?co=sungsim)
+const _co = new URLSearchParams(window.location.search).get('co') || 'sungsim';
+const API_URL = COMPANY_URLS[_co] || COMPANY_URLS.sungsim;
+
+// 현재 업체 표시 (페이지 타이틀에 반영)
+const COMPANY_LABELS = { sungsim: '성심', bscompany: '비에스컴퍼니', spare: '예비' };
+document.addEventListener('DOMContentLoaded', () => {
+  const label = COMPANY_LABELS[_co] || '성심';
+  document.title = document.title + ' - ' + label;
+  const brand = document.querySelector('.nav-brand a');
+  if (brand) brand.textContent = '거래명세 관리 시스템 [' + label + ']';
+});
 
 async function callAPI(action, data = {}) {
     try {
