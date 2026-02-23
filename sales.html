@@ -484,7 +484,7 @@
                 });
 
                 // ✅ 2단계: 전체 합계 계산 후 입금액 비례 배분
-                const grandTotal = sales.reduce((sum, s) => sum + (s.total * s.quantity), 0);
+                const grandTotal = sales.reduce((sum, s) => sum + s.total, 0);
                 let remainingPayment = paymentAmount;
 
                 sales.forEach((s, idx) => {
@@ -503,7 +503,7 @@
                     remainingPayment -= itemPayment;
 
                     // ✅ 총액 기준으로 입금/미수금 계산
-                    const itemUnpaid = totalAmount - itemPayment;
+                    const itemUnpaid = s.total - itemPayment;
 
                     s.paymentStatus = paymentStatus;
                     s.paymentAmount = itemPayment;
