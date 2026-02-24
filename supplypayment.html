@@ -37,10 +37,15 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="payment-supplier">공급업체 선택 *</label>
-                        <select id="payment-supplier" required onchange="onSupplierSelect(this.value)">
-                            <option value="">선택하세요</option>
-                        </select>
+                        <label>공급업체 선택 *</label>
+                        <div class="search-select-wrap">
+                            <input type="text" id="supplier-search" placeholder="공급업체 검색 (앞글자 입력)" autocomplete="off"
+                                oninput="filterSupplierList(this.value)"
+                                onfocus="showSupplierList()"
+                                onblur="setTimeout(()=>hideSupplierList(),200)">
+                            <input type="hidden" id="payment-supplier">
+                            <div id="supplier-dropdown" class="search-dropdown" style="display:none;"></div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="payment-date">지급일 *</label>
@@ -73,7 +78,7 @@
                     </div>
                 </div>
 
-                <div id="no-unpaid-msg" style="display:none; background:#f5f5f5; padding:16px; border-radius:8px; text-align:center; color:#888; margin-bottom:20px;">
+                <div id="no-unpaid-msg" style="display:none; background:#f0fdf4; padding:16px; border-radius:8px; text-align:center; color:#2e7d32; margin-bottom:20px; font-weight:bold;">
                     ✅ 미지급금이 없습니다
                 </div>
 
@@ -106,16 +111,43 @@
                 </div>
             </section>
 
+            <!-- 공급업체별 미지급금 요약 -->
+            <section class="card">
+                <h2>공급업체별 미지급금 현황</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>공급업체</th>
+                                <th>총 입고금액</th>
+                                <th>총 지급액</th>
+                                <th>미지급금</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summary-tbody">
+                            <tr><td colspan="5" class="text-center">로딩 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="total-payable-info" style="text-align:right; margin-top:12px; font-size:15px; font-weight:bold; color:#e65100;"></div>
+            </section>
+
             <!-- 지급 내역 -->
             <section class="card">
                 <h2>지급 내역</h2>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="filter-supplier">공급업체 필터</label>
-                        <select id="filter-supplier">
-                            <option value="">전체</option>
-                        </select>
+                        <label>공급업체 필터</label>
+                        <div class="search-select-wrap">
+                            <input type="text" id="filter-supplier-search" placeholder="전체 (앞글자 입력)" autocomplete="off"
+                                oninput="filterSupplierList2(this.value)"
+                                onfocus="showSupplierList2()"
+                                onblur="setTimeout(()=>hideSupplierList2(),200)">
+                            <input type="hidden" id="filter-supplier" value="">
+                            <div id="supplier-dropdown2" class="search-dropdown" style="display:none;"></div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="filter-start">시작일</label>
@@ -152,29 +184,131 @@
     <script src="api.js"></script>
     <script>
         let totalUnpaid = 0;
+        let allSuppliers = [];
 
         document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
             await loadSuppliers();
             await loadPayments();
+            await loadSummary();
         });
 
         // ==========================================
-        // 공급업체 로드
+        // 검색 드롭다운
         // ==========================================
 
         async function loadSuppliers() {
             try {
                 const result = await getCompanies('공급업체');
                 if (result.success && result.data.length > 0) {
-                    const sel1 = document.getElementById('payment-supplier');
-                    const sel2 = document.getElementById('filter-supplier');
-                    result.data.forEach(c => {
-                        sel1.appendChild(new Option(c.name, c.name));
-                        sel2.appendChild(new Option(c.name, c.name));
-                    });
+                    allSuppliers = result.data.map(c => c.name);
+                    renderDropdown('supplier-dropdown', allSuppliers, selectSupplier);
+                    renderDropdown('supplier-dropdown2', ['전체', ...allSuppliers], selectSupplier2);
                 }
             } catch(e) { console.error('공급업체 로드 에러:', e); }
+        }
+
+        function renderDropdown(id, list, fn) {
+            const dd = document.getElementById(id);
+            dd.innerHTML = list.map(n =>
+                `<div class="search-item" onmousedown="event.preventDefault()" onclick="${fn.name}('${n}')">${n}</div>`
+            ).join('');
+        }
+
+        function filterSupplierList(val) {
+            const filtered = allSuppliers.filter(n => n.includes(val));
+            const dd = document.getElementById('supplier-dropdown');
+            dd.innerHTML = filtered.map(n =>
+                `<div class="search-item" onmousedown="event.preventDefault()" onclick="selectSupplier('${n}')">${n}</div>`
+            ).join('');
+            dd.style.display = filtered.length ? 'block' : 'none';
+        }
+
+        function filterSupplierList2(val) {
+            const list = val ? allSuppliers.filter(n => n.includes(val)) : ['전체', ...allSuppliers];
+            const dd = document.getElementById('supplier-dropdown2');
+            dd.innerHTML = list.map(n =>
+                `<div class="search-item" onmousedown="event.preventDefault()" onclick="selectSupplier2('${n}')">${n}</div>`
+            ).join('');
+            dd.style.display = list.length ? 'block' : 'none';
+        }
+
+        function showSupplierList() { document.getElementById('supplier-dropdown').style.display = 'block'; }
+        function hideSupplierList() { document.getElementById('supplier-dropdown').style.display = 'none'; }
+        function showSupplierList2() { document.getElementById('supplier-dropdown2').style.display = 'block'; }
+        function hideSupplierList2() { document.getElementById('supplier-dropdown2').style.display = 'none'; }
+
+        function selectSupplier(name) {
+            document.getElementById('supplier-search').value = name;
+            document.getElementById('payment-supplier').value = name;
+            document.getElementById('supplier-dropdown').style.display = 'none';
+            onSupplierSelect(name);
+        }
+
+        function selectSupplier2(name) {
+            document.getElementById('filter-supplier-search').value = name === '전체' ? '' : name;
+            document.getElementById('filter-supplier').value = name === '전체' ? '' : name;
+            document.getElementById('supplier-dropdown2').style.display = 'none';
+        }
+
+        // ==========================================
+        // 공급업체별 미지급금 요약
+        // ==========================================
+
+        async function loadSummary() {
+            const tbody = document.getElementById('summary-tbody');
+            try {
+                const [purchaseResult, paymentResult] = await Promise.all([
+                    getPurchases({}),
+                    getSupplierPayments({})
+                ]);
+
+                if (!purchaseResult.success) return;
+
+                // 공급업체별 총 입고금액 집계
+                const supplierData = {};
+                purchaseResult.data.forEach(p => {
+                    const s = p.supplier;
+                    if (!supplierData[s]) supplierData[s] = { total: 0, unpaid: 0 };
+                    supplierData[s].total += p.total || 0;
+                    supplierData[s].unpaid += p.unpaid || 0;
+                });
+
+                // 총 지급액 집계
+                const paidMap = {};
+                if (paymentResult.success) {
+                    paymentResult.data.forEach(p => {
+                        paidMap[p.supplier] = (paidMap[p.supplier] || 0) + (p.amount || 0);
+                    });
+                }
+
+                let totalPayable = 0;
+                let html = '';
+                Object.entries(supplierData).forEach(([name, d]) => {
+                    const paid = paidMap[name] || 0;
+                    const unpaid = d.unpaid;
+                    totalPayable += unpaid;
+                    const statusBadge = unpaid <= 0
+                        ? '<span class="badge badge-success">완납</span>'
+                        : paid > 0
+                        ? '<span class="badge badge-warning">부분지급</span>'
+                        : '<span class="badge badge-danger">미지급</span>';
+                    html += `<tr>
+                        <td><strong>${name}</strong></td>
+                        <td class="text-right">${d.total.toLocaleString()}원</td>
+                        <td class="text-right" style="color:#1976d2;">${paid.toLocaleString()}원</td>
+                        <td class="text-right" style="color:${unpaid>0?'#e65100':'#2e7d32'}; font-weight:bold;">${unpaid.toLocaleString()}원</td>
+                        <td class="text-center">${statusBadge}</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">데이터가 없습니다</td></tr>';
+                document.getElementById('total-payable-info').textContent =
+                    `전체 미지급금 합계: ${totalPayable.toLocaleString()}원`;
+
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">조회 실패</td></tr>';
+            }
         }
 
         // ==========================================
@@ -192,7 +326,6 @@
             section.style.display = 'none';
             noMsg.style.display = 'none';
             hint.textContent = '';
-
             if (!supplier) return;
 
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">로딩 중...</td></tr>';
@@ -202,7 +335,6 @@
                 const result = await getPurchases({ supplier });
                 if (!result.success) { section.style.display = 'none'; return; }
 
-                // 미지급금 있는 항목만 필터
                 const unpaidList = result.data.filter(p => (p.unpaid || 0) > 0);
 
                 if (unpaidList.length === 0) {
@@ -233,12 +365,10 @@
                 section.style.display = 'block';
 
             } catch(e) {
-                console.error('미지급 조회 에러:', e);
                 section.style.display = 'none';
             }
         }
 
-        // 지급액 입력 시 힌트
         function onAmountInput() {
             const amount = Number(document.getElementById('payment-amount').value) || 0;
             const hint = document.getElementById('amount-hint');
@@ -255,10 +385,6 @@
                 hint.style.color = '#e65100';
             }
         }
-
-        // ==========================================
-        // 지급 등록
-        // ==========================================
 
         async function handlePaymentSubmit() {
             const supplier = document.getElementById('payment-supplier').value;
@@ -282,9 +408,10 @@
                 });
 
                 if (result.success) {
-                    alert(`${supplier} 지급 ${amount.toLocaleString()}원이 등록되었습니다.\n미지급금이 자동 차감됩니다.`);
+                    alert(`${supplier} 지급 ${amount.toLocaleString()}원이 등록되었습니다.`);
                     resetForm();
                     await loadPayments();
+                    await loadSummary();
                 } else {
                     alert('지급 등록 실패: ' + result.message);
                 }
@@ -293,11 +420,8 @@
             }
         }
 
-        // ==========================================
-        // 폼 초기화
-        // ==========================================
-
         function resetForm() {
+            document.getElementById('supplier-search').value = '';
             document.getElementById('payment-supplier').value = '';
             document.getElementById('payment-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('payment-amount').value = '';
@@ -309,14 +433,9 @@
             totalUnpaid = 0;
         }
 
-        // ==========================================
-        // 지급 내역 로드
-        // ==========================================
-
         async function loadPayments() {
             const tbody = document.getElementById('payments-tbody');
             tbody.innerHTML = '<tr><td colspan="5" class="text-center">로딩 중...</td></tr>';
-
             try {
                 const params = {};
                 const supplier = document.getElementById('filter-supplier').value;
@@ -327,15 +446,16 @@
                 if (endDate) params.endDate = endDate;
 
                 const result = await getSupplierPayments(params);
-
                 if (!result.success || result.data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">지급 내역이 없습니다</td></tr>';
                     return;
                 }
 
                 const sorted = result.data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                let totalPaid = 0;
                 let html = '';
                 sorted.forEach(p => {
+                    totalPaid += p.amount || 0;
                     html += `<tr>
                         <td>${formatDate(p.date)}</td>
                         <td>${p.supplier}</td>
@@ -344,8 +464,12 @@
                         <td>${p.note||'-'}</td>
                     </tr>`;
                 });
+                html += `<tr style="background:#fff3e0; font-weight:bold;">
+                    <td colspan="2" class="text-right">합계</td>
+                    <td class="text-right" style="color:#e65100;">${totalPaid.toLocaleString()}원</td>
+                    <td colspan="2"></td>
+                </tr>`;
                 tbody.innerHTML = html;
-
             } catch(e) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">오류: ${e.message}</td></tr>`;
             }
@@ -362,10 +486,18 @@
     </script>
 
     <style>
-        .badge-danger {
-            background: #ffebee; color: #c62828;
-            padding: 2px 8px; border-radius: 12px; font-size: 12px;
+        .search-select-wrap { position: relative; }
+        .search-select-wrap input[type="text"] { width: 100%; }
+        .search-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #ddd; border-radius: 4px;
+            max-height: 200px; overflow-y: auto; z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+        .search-item { padding: 10px 14px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+        .search-item:hover { background: #fff3e0; color: #e65100; font-weight: bold; }
+        .badge-danger { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .badge-warning { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
     </style>
 </body>
 </html>
