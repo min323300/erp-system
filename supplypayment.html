@@ -286,7 +286,7 @@
                 let html = '';
                 Object.entries(supplierData).forEach(([name, d]) => {
                     const paid = paidMap[name] || 0;
-                    const unpaid = d.unpaid;
+                    const unpaid = Math.max(0, d.total - paid); // ✅ 총입고 - 총지급 = 실제 미지급
                     totalPayable += unpaid;
                     const statusBadge = unpaid <= 0
                         ? '<span class="badge badge-success">완납</span>'
