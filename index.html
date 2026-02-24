@@ -31,35 +31,50 @@
             </div>
 
             <div class="dashboard-grid">
+                <!-- 이번 달 매출 -->
                 <div class="card stat-card">
-                    <div class="stat-icon" style="background: #e3f2fd;">📊</div>
+                    <div class="stat-icon" style="background:#e3f2fd;">📊</div>
                     <div class="stat-content">
                         <div class="stat-label">이번 달 매출</div>
-                        <div class="stat-value" id="monthly-sales">0원</div>
+                        <div class="stat-value" id="monthly-sales">-</div>
                     </div>
                 </div>
 
+                <!-- 이번 달 이익 -->
                 <div class="card stat-card">
-                    <div class="stat-icon" style="background: #f3e5f5;">💰</div>
+                    <div class="stat-icon" style="background:#f3e5f5;">💰</div>
                     <div class="stat-content">
                         <div class="stat-label">이번 달 이익</div>
-                        <div class="stat-value" id="monthly-profit">0원</div>
+                        <div class="stat-value" id="monthly-profit">-</div>
                     </div>
                 </div>
 
+                <!-- 총 미수금 (거래처가 우리에게 줘야 할 돈) -->
                 <div class="card stat-card">
-                    <div class="stat-icon" style="background: #fff3e0;">⚠️</div>
+                    <div class="stat-icon" style="background:#fff3e0;">⚠️</div>
                     <div class="stat-content">
                         <div class="stat-label">총 미수금</div>
-                        <div class="stat-value text-danger" id="total-receivables">0원</div>
+                        <div class="stat-value text-danger" id="total-receivables">-</div>
+                        <div style="font-size:11px; color:#999; margin-top:2px;">거래처 → 우리</div>
                     </div>
                 </div>
 
+                <!-- ✅ 총 미지급금 (우리가 공급업체에게 줘야 할 돈) -->
                 <div class="card stat-card">
-                    <div class="stat-icon" style="background: #ffebee;">📦</div>
+                    <div class="stat-icon" style="background:#fce4ec;">💸</div>
+                    <div class="stat-content">
+                        <div class="stat-label">총 미지급금</div>
+                        <div class="stat-value" id="total-payables">-</div>
+                        <div style="font-size:11px; color:#999; margin-top:2px;">우리 → 공급업체</div>
+                    </div>
+                </div>
+
+                <!-- 재고 부족 품목 -->
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background:#ffebee;">📦</div>
                     <div class="stat-content">
                         <div class="stat-label">재고 부족 품목</div>
-                        <div class="stat-value" id="low-stock">0개</div>
+                        <div class="stat-value" id="low-stock">-</div>
                     </div>
                 </div>
             </div>
@@ -70,6 +85,7 @@
                     <a href="sales.html" class="btn btn-primary">📊 판매 등록</a>
                     <a href="payment.html" class="btn btn-primary">💰 입금 처리</a>
                     <a href="purchase.html" class="btn btn-secondary">📥 입고 등록</a>
+                    <a href="supplypayment.html" class="btn btn-secondary">💸 지급 처리</a>
                     <a href="settings.html" class="btn btn-secondary">⚙️ 업체 관리</a>
                     <a href="settings.html" class="btn btn-secondary">🏷️ 품목 관리</a>
                 </div>
@@ -87,19 +103,36 @@
             try {
                 const result = await getDashboard();
                 if (result.success) {
-                    document.getElementById('monthly-sales').textContent = formatCurrency(result.data.monthlySales);
-                    document.getElementById('monthly-profit').textContent = formatCurrency(result.data.monthlyProfit);
-                    document.getElementById('total-receivables').textContent = formatCurrency(result.data.totalReceivables);
-                    document.getElementById('low-stock').textContent = result.data.lowStockItems + '개';
+                    const d = result.data;
 
-                    // 미수금 있으면 빨간색
-                    if (result.data.totalReceivables > 0) {
-                        document.getElementById('total-receivables').style.color = '#d32f2f';
-                    }
+                    // 매출
+                    document.getElementById('monthly-sales').textContent = fmt(d.monthlySales);
+
+                    // 이익 (마이너스면 빨간색)
+                    const profitEl = document.getElementById('monthly-profit');
+                    profitEl.textContent = fmt(d.monthlyProfit);
+                    profitEl.style.color = d.monthlyProfit >= 0 ? '#2e7d32' : '#d32f2f';
+
+                    // 미수금
+                    const recEl = document.getElementById('total-receivables');
+                    recEl.textContent = fmt(d.totalReceivables);
+                    recEl.style.color = d.totalReceivables > 0 ? '#d32f2f' : '#2e7d32';
+
+                    // ✅ 미지급금
+                    const payEl = document.getElementById('total-payables');
+                    payEl.textContent = fmt(d.totalPayables || 0);
+                    payEl.style.color = (d.totalPayables || 0) > 0 ? '#e65100' : '#2e7d32';
+
+                    // 재고 부족
+                    document.getElementById('low-stock').textContent = (d.lowStockItems || 0) + '개';
                 }
             } catch (error) {
                 console.error('대시보드 로드 실패:', error);
             }
+        }
+
+        function fmt(n) {
+            return Number(n || 0).toLocaleString() + '원';
         }
     </script>
 </body>
