@@ -6,7 +6,7 @@
 
 // ✅ 업체별 API URL 설정
 const COMPANY_URLS = {
-  sungsim:   'https://script.google.com/macros/s/AKfycbxxD3X5BzZe1WJElyjA7587siFr51xHc9mB1Cs1rJQS_JGhzY2VYvYk7aWe8BKc87DCBw/exec',
+  sungsim:   'https://script.google.com/macros/s/AKfycbw2TDz0vXR9Rncia_s6utqx2sj8Y3HtIpKHgwnktd7E4Y7aXZF7N_LcORpp2BXkh08_5A/exec',
   bscompany: 'https://script.google.com/macros/s/AKfycbxQo49dolbpHIOQX2XUPaiTBamxsYSrKBB8vYDRaBR5t8AiA1KpsoAF82IMZHf7oweb/exec',
   spare:     '여기에_예비업체_URL_입력',
 };
