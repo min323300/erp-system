@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>거래명세 관리 시스템 - 로그인</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #1565c0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-wrap {
+            background: white;
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-logo .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .login-logo h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a237e;
+            margin-bottom: 4px;
+        }
+
+        .login-logo p {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #1a237e;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #1a237e, #1565c0);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.2s;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-login:hover { opacity: 0.9; }
+
+        .error-msg {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .error-msg.show { display: block; }
+
+        .lock-notice {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #bbb;
+        }
+
+        /* 5회 실패 시 잠금 화면 */
+        .locked-msg {
+            display: none;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .locked-msg.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="login-wrap">
+    <div class="login-logo">
+        <div class="icon">🏢</div>
+        <h1>거래명세 관리 시스템</h1>
+        <p>BS Company ERP v18</p>
+    </div>
+
+    <div class="form-group">
+        <label>아이디</label>
+        <input type="text" id="username" placeholder="아이디 입력" autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+        <label>비밀번호</label>
+        <input type="password" id="password" placeholder="비밀번호 입력" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">로그인</button>
+
+    <div class="error-msg" id="error-msg">❌ 아이디 또는 비밀번호가 틀렸습니다.</div>
+    <div class="locked-msg" id="locked-msg">🔒 5회 실패로 30분간 잠금되었습니다.</div>
+
+    <div class="lock-notice">🔒 허가된 사용자만 접근 가능합니다</div>
+</div>
+
+<script>
+    // =============================================
+    // ⚠️ 계정 설정 (아이디 / 비밀번호 / 이동할 페이지)
+    // =============================================
+    const ACCOUNTS = [
+        { id: 'hypo3300', pw: 'Min323300!', page: 'index.html', name: '관리자' },
+        { id: 'sungsim', pw: 'ss0550**', page: 'index.html', name: '경리' }
+    ];
+
+    // 세션 키
+    const SESSION_KEY = 'erp_auth';
+    const LOCK_KEY    = 'erp_lock';
+
+    // 이미 로그인된 경우 바로 이동
+    if (localStorage.getItem(SESSION_KEY) === 'ok') {
+        const savedPage = localStorage.getItem('erp_page') || 'index.html';
+        location.href = savedPage;
+    }
+
+    // 잠금 확인
+    function checkLock() {
+        const lockData = localStorage.getItem(LOCK_KEY);
+        if (!lockData) return false;
+        const lock = JSON.parse(lockData);
+        const now = new Date().getTime();
+        if (now < lock.until) {
+            document.getElementById('locked-msg').classList.add('show');
+            document.querySelector('.btn-login').disabled = true;
+            return true;
+        }
+        localStorage.removeItem(LOCK_KEY);
+        return false;
+    }
+
+    checkLock();
+
+    // 실패 횟수
+    function getFailCount() {
+        return parseInt(localStorage.getItem('erp_fail') || '0');
+    }
+
+    function addFail() {
+        const count = getFailCount() + 1;
+        localStorage.setItem('erp_fail', count);
+        if (count >= 5) {
+            // 30분 잠금
+            const until = new Date().getTime() + 30 * 60 * 1000;
+            localStorage.setItem(LOCK_KEY, JSON.stringify({ until }));
+            localStorage.removeItem('erp_fail');
+            document.getElementById('locked-msg').classList.add('show');
+            document.getElementById('error-msg').classList.remove('show');
+            document.querySelector('.btn-login').disabled = true;
+        }
+        return count;
+    }
+
+    function doLogin() {
+        if (checkLock()) return;
+
+        const id = document.getElementById('username').value.trim();
+        const pw = document.getElementById('password').value.trim();
+
+        const account = ACCOUNTS.find(a => a.id === id && a.pw === pw);
+
+        if (account) {
+            // 로그인 성공
+            localStorage.removeItem('erp_fail');
+            localStorage.setItem(SESSION_KEY, 'ok');
+            localStorage.setItem('erp_page', account.page);
+            localStorage.setItem('erp_name', account.name);
+            location.href = account.page;
+        } else {
+            // 로그인 실패
+            const count = addFail();
+            const remaining = 5 - count;
+            if (remaining > 0) {
+                document.getElementById('error-msg').textContent =
+                    `❌ 아이디 또는 비밀번호가 틀렸습니다. (${remaining}회 남음)`;
+                document.getElementById('error-msg').classList.add('show');
+            }
+        }
+    }
+
+    // Enter 키로 로그인
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doLogin();
+    });
+</script>
+
+</body>
+</html>
