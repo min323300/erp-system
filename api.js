@@ -60,6 +60,8 @@ async function getMyCompany() { return await callAPI('getMyCompany'); }
 async function saveMyCompany(companyData) { return await callAPI('saveMyCompany', { data: companyData }); }
 async function getSales(params = {}) { return await callAPI('getSales', params); }
 async function addSale(saleData) { return await callAPI('addSale', { data: saleData }); }
+async function updateSale(rowIndex, saleData) { return await callAPI('updateSale', { rowIndex, data: saleData }); }
+async function deleteSale(rowIndex) { return await callAPI('deleteSale', { rowIndex }); }
 async function getLastPrice(company, item) { return await callAPI('getLastPrice', { company, item }); }
 async function getCustomPrices(company) { return await callAPI('getCustomPrices', { company }); }
 async function saveCustomPrice(company, item, price) { return await callAPI('saveCustomPrice', { data: { company, item, price } }); }
