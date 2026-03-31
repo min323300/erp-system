@@ -144,7 +144,7 @@
                                 <th>배송방식</th>
                                 <th>이력번호</th>
                                 <th>공박스</th>
-                                <th>명세표</th>
+                                <th>명세표/수정</th>
                             </tr>
                         </thead>
                         <tbody id="sales-tbody"></tbody>
@@ -152,6 +152,64 @@
                 </div>
             </section>
         </main>
+
+        <!-- ==================== 수정 모달 ==================== -->
+        <div id="edit-modal" class="edit-modal-overlay" style="display:none;">
+            <div class="edit-modal-content">
+                <div class="edit-modal-header">
+                    <h2>📝 판매 내역 수정</h2>
+                    <button class="edit-modal-close" onclick="closeEditModal()">&times;</button>
+                </div>
+                <div class="edit-modal-body">
+                    <div class="edit-modal-info" id="edit-modal-info"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-date">판매일 *</label>
+                            <input type="date" id="edit-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-delivery">배송방식</label>
+                            <select id="edit-delivery">
+                                <option value="오프라인">오프라인</option>
+                                <option value="택배">택배</option>
+                                <option value="퀵">퀵</option>
+                                <option value="직접배송">직접배송</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-box-return">공박스회수</label>
+                            <select id="edit-box-return">
+                                <option value="회수">회수</option>
+                                <option value="미회수">미회수</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-payment-status">입금여부</label>
+                            <select id="edit-payment-status">
+                                <option value="미입금">미입금</option>
+                                <option value="입금완료">입금완료</option>
+                                <option value="부분입금">부분입금</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-payment-amount">입금액</label>
+                            <input type="number" id="edit-payment-amount" value="0">
+                        </div>
+                    </div>
+                    <h3 style="margin-top:16px;">품목 내역</h3>
+                    <div id="edit-items-container"></div>
+                    <button type="button" class="btn btn-secondary" onclick="addEditItemRow()" style="margin-top:8px;">+ 품목 추가</button>
+                </div>
+                <div class="edit-modal-footer">
+                    <button class="btn btn-primary" onclick="saveEditModal()">💾 저장</button>
+                    <button class="btn btn-secondary" onclick="saveAndReissue()">💾 저장 후 명세표 재발행</button>
+                    <button class="btn btn-danger" onclick="deleteEditSales()">🗑 전체 삭제</button>
+                    <button class="btn btn-secondary" onclick="closeEditModal()">취소</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="api.js"></script>
@@ -591,8 +649,9 @@
                     `;
 
                     if (isFirst) {
-                        html += `<td rowspan="${rowSpan}" class="text-center">
-                            <button class="btn btn-sm btn-primary" onclick="generateStatement('${sale.date}', '${sale.customer}')">📄 명세표</button>
+                        html += `<td rowspan="${rowSpan}" class="text-center" style="white-space:nowrap;">
+                            <button class="btn btn-sm btn-primary" onclick="generateStatement('${sale.date}', '${sale.customer}')" style="margin-bottom:4px;">📄 명세표</button>
+                            <button class="btn btn-sm btn-secondary" onclick="openEditModal('${formatDate(sale.date)}', '${sale.customer}')" style="margin-bottom:4px;">✏️ 수정</button>
                         </td>`;
                     }
 
@@ -635,11 +694,388 @@
                 return amount.toLocaleString('ko-KR');
             } catch(e) { return '0'; }
         }
+
+        // ==========================================
+        // 수정 모달 기능
+        // ==========================================
+        let editSalesData = [];     // 현재 편집 중인 판매 데이터
+        let editItemCounter = 0;    // 편집 모달 품목 카운터
+        let editOriginalDate = '';
+        let editOriginalCustomer = '';
+
+        function createEditItemRowHTML(index, data = {}) {
+            const taxIncluded = (!data.taxType || data.taxType === '과세') ? 'checked' : '';
+            const taxExempt = data.taxType === '면세' ? 'checked' : '';
+            return `
+            <div class="edit-item-row" data-edit-index="${index}" style="background:#f9f9f9; border:1px solid #e0e0e0; border-radius:8px; padding:12px; margin-bottom:10px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>품목 *</label>
+                        <select class="edit-item-name" required>
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>수량 *</label>
+                        <input type="number" class="edit-item-quantity" value="${data.quantity || 1}" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>단가 *</label>
+                        <input type="number" class="edit-item-price" value="${data.price || ''}" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>부가세 방식</label>
+                        <div style="display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;">
+                            <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
+                                <input type="radio" name="edit-tax-type-${index}" value="included" ${taxIncluded} style="margin-right:5px;"> 부가세포함
+                            </label>
+                            <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
+                                <input type="radio" name="edit-tax-type-${index}" value="excluded" style="margin-right:5px;"> 부가세별도
+                            </label>
+                            <label style="display:flex; align-items:center; cursor:pointer; font-size:13px; color:#2e7d32; font-weight:bold;">
+                                <input type="radio" name="edit-tax-type-${index}" value="exempt" ${taxExempt} style="margin-right:5px;"> 면세
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>이력번호</label>
+                        <input type="text" class="edit-item-trace" value="${data.traceNumber || ''}" placeholder="12자리" maxlength="12">
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeEditItem(${index})" style="margin-bottom:2px;">삭제</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        async function openEditModal(date, customer) {
+            editOriginalDate = date;
+            editOriginalCustomer = customer;
+            editItemCounter = 0;
+
+            const modal = document.getElementById('edit-modal');
+            const infoEl = document.getElementById('edit-modal-info');
+            infoEl.innerHTML = `<strong>${customer}</strong> - ${date} 판매 내역을 수정합니다.`;
+
+            // 판매 데이터 로드
+            try {
+                const result = await getSales();
+                if (!result.success || !result.data) {
+                    alert('판매 데이터를 불러올 수 없습니다.');
+                    return;
+                }
+
+                editSalesData = result.data.filter(s =>
+                    formatDate(s.date) === date && s.customer === customer
+                );
+
+                if (editSalesData.length === 0) {
+                    alert('해당 날짜/거래처의 판매 데이터가 없습니다.');
+                    return;
+                }
+
+                // 공통 필드 채우기 (첫 번째 행 기준)
+                const first = editSalesData[0];
+                document.getElementById('edit-date').value = date;
+                document.getElementById('edit-delivery').value = first.delivery || '오프라인';
+                document.getElementById('edit-box-return').value = first.boxReturn || '미회수';
+                document.getElementById('edit-payment-status').value = first.paymentStatus || '미입금';
+
+                // 입금액 합산
+                const totalPayment = editSalesData.reduce((sum, s) => sum + (s.paymentAmount || 0), 0);
+                document.getElementById('edit-payment-amount').value = totalPayment;
+
+                // 품목 행 렌더링
+                const container = document.getElementById('edit-items-container');
+                container.innerHTML = '';
+
+                editSalesData.forEach(sale => {
+                    const idx = editItemCounter++;
+                    const div = document.createElement('div');
+                    div.innerHTML = createEditItemRowHTML(idx, {
+                        quantity: sale.quantity,
+                        price: sale.price,
+                        taxType: sale.taxType,
+                        traceNumber: sale.traceNumber
+                    });
+                    const row = div.firstElementChild;
+                    container.appendChild(row);
+
+                    // 품목 select 채우기 + 선택
+                    const sel = row.querySelector('.edit-item-name');
+                    allItems.forEach(item => {
+                        const opt = new Option(item.name, item.name);
+                        opt.dataset.price = item.price;
+                        sel.appendChild(opt);
+                    });
+                    sel.value = sale.item;
+
+                    // rowIndex 저장 (수정 시 사용)
+                    row.dataset.rowIndex = sale.rowIndex || '';
+                });
+
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+
+            } catch (error) {
+                alert('판매 데이터 로드 중 오류: ' + error.message);
+            }
+        }
+
+        function addEditItemRow() {
+            const container = document.getElementById('edit-items-container');
+            const idx = editItemCounter++;
+            const div = document.createElement('div');
+            div.innerHTML = createEditItemRowHTML(idx, {});
+            const row = div.firstElementChild;
+            container.appendChild(row);
+
+            const sel = row.querySelector('.edit-item-name');
+            allItems.forEach(item => {
+                const opt = new Option(item.name, item.name);
+                opt.dataset.price = item.price;
+                sel.appendChild(opt);
+            });
+            row.dataset.rowIndex = ''; // 새 항목
+        }
+
+        function removeEditItem(index) {
+            const row = document.querySelector(`[data-edit-index="${index}"]`);
+            if (row) {
+                const container = document.getElementById('edit-items-container');
+                if (container.children.length > 1) {
+                    row.remove();
+                } else {
+                    alert('최소 1개의 품목은 있어야 합니다.');
+                }
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            document.body.style.overflow = '';
+            editSalesData = [];
+        }
+
+        function collectEditData() {
+            const date = document.getElementById('edit-date').value;
+            const delivery = document.getElementById('edit-delivery').value;
+            const boxReturn = document.getElementById('edit-box-return').value;
+            const paymentStatus = document.getElementById('edit-payment-status').value;
+            const paymentAmount = Number(document.getElementById('edit-payment-amount').value);
+
+            if (!date) { alert('판매일을 입력하세요.'); return null; }
+
+            const items = [];
+            document.querySelectorAll('.edit-item-row').forEach(row => {
+                const idx = row.dataset.editIndex;
+                const itemName = row.querySelector('.edit-item-name').value;
+                const quantity = Number(row.querySelector('.edit-item-quantity').value);
+                const price = Number(row.querySelector('.edit-item-price').value);
+                const traceNumber = row.querySelector('.edit-item-trace').value || '';
+                const taxRadio = row.querySelector(`input[name="edit-tax-type-${idx}"]:checked`);
+                const taxMode = taxRadio ? taxRadio.value : 'included';
+                const rowIndex = row.dataset.rowIndex || '';
+
+                if (!itemName || quantity <= 0 || price <= 0) return;
+
+                let supplyPrice, vat, total;
+                if (taxMode === 'exempt') {
+                    total = price; supplyPrice = price; vat = 0;
+                } else if (taxMode === 'included') {
+                    total = price;
+                    supplyPrice = Math.round(price / 1.1);
+                    vat = price - supplyPrice;
+                } else {
+                    supplyPrice = price;
+                    vat = Math.round(price * 0.1);
+                    total = price + vat;
+                }
+
+                const totalSupply = supplyPrice * quantity;
+                const totalVat = vat * quantity;
+                const totalAmount = total * quantity;
+
+                items.push({
+                    rowIndex,
+                    date, customer: editOriginalCustomer,
+                    item: itemName, quantity,
+                    price: total,
+                    supplyPrice: totalSupply,
+                    vat: totalVat,
+                    total: totalAmount,
+                    delivery, traceNumber, boxReturn,
+                    taxType: taxMode === 'exempt' ? '면세' : '과세'
+                });
+            });
+
+            if (items.length === 0) { alert('최소 1개 이상의 품목을 입력해주세요.'); return null; }
+
+            // 입금액 비례 배분
+            const grandTotal = items.reduce((sum, s) => sum + s.total, 0);
+            let remaining = paymentAmount;
+            items.forEach((s, i) => {
+                let itemPayment;
+                if (i === items.length - 1) {
+                    itemPayment = remaining;
+                } else {
+                    itemPayment = grandTotal > 0 ? Math.round(paymentAmount * (s.total / grandTotal)) : 0;
+                }
+                remaining -= itemPayment;
+                s.paymentStatus = paymentStatus;
+                s.paymentAmount = itemPayment;
+                s.unpaid = s.total - itemPayment;
+            });
+
+            return items;
+        }
+
+        async function saveEditModal() {
+            const items = collectEditData();
+            if (!items) return;
+
+            if (!confirm('판매 내역을 수정하시겠습니까?')) return;
+
+            try {
+                // 1단계: 기존 행 삭제 (rowIndex가 있는 원본 데이터)
+                const deleteIndices = editSalesData
+                    .filter(s => s.rowIndex)
+                    .map(s => s.rowIndex);
+
+                // 역순으로 삭제 (행번호 밀림 방지)
+                const sortedIndices = deleteIndices.sort((a, b) => Number(b) - Number(a));
+                for (const idx of sortedIndices) {
+                    await deleteSale(idx);
+                }
+
+                // 2단계: 새 데이터 등록
+                let successCount = 0;
+                for (const item of items) {
+                    delete item.rowIndex;
+                    const result = await addSale(item);
+                    if (result.success) successCount++;
+                }
+
+                if (successCount > 0) {
+                    alert(`${successCount}개 품목이 수정되었습니다.`);
+                    closeEditModal();
+                    await loadSales();
+                } else {
+                    alert('수정에 실패했습니다.');
+                }
+            } catch (error) {
+                alert('수정 중 오류: ' + error.message);
+            }
+        }
+
+        async function saveAndReissue() {
+            const items = collectEditData();
+            if (!items) return;
+
+            if (!confirm('판매 내역을 수정하고 거래명세표를 재발행하시겠습니까?')) return;
+
+            try {
+                const deleteIndices = editSalesData
+                    .filter(s => s.rowIndex)
+                    .map(s => s.rowIndex);
+
+                const sortedIndices = deleteIndices.sort((a, b) => Number(b) - Number(a));
+                for (const idx of sortedIndices) {
+                    await deleteSale(idx);
+                }
+
+                let successCount = 0;
+                const newDate = items[0].date;
+                const newCustomer = items[0].customer;
+
+                for (const item of items) {
+                    delete item.rowIndex;
+                    const result = await addSale(item);
+                    if (result.success) successCount++;
+                }
+
+                if (successCount > 0) {
+                    alert(`${successCount}개 품목이 수정되었습니다. 명세표를 재발행합니다.`);
+                    closeEditModal();
+                    await loadSales();
+                    await generateStatement(newDate, newCustomer);
+                } else {
+                    alert('수정에 실패했습니다.');
+                }
+            } catch (error) {
+                alert('수정/재발행 중 오류: ' + error.message);
+            }
+        }
+
+        async function deleteEditSales() {
+            if (!confirm(`⚠️ ${editOriginalCustomer}의 ${editOriginalDate} 판매 내역을 전부 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+            try {
+                const deleteIndices = editSalesData
+                    .filter(s => s.rowIndex)
+                    .map(s => s.rowIndex);
+
+                const sortedIndices = deleteIndices.sort((a, b) => Number(b) - Number(a));
+                let delCount = 0;
+                for (const idx of sortedIndices) {
+                    const result = await deleteSale(idx);
+                    if (result.success) delCount++;
+                }
+
+                alert(`${delCount}개 항목이 삭제되었습니다.`);
+                closeEditModal();
+                await loadSales();
+            } catch (error) {
+                alert('삭제 중 오류: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
 
 <style>
+/* 수정 모달 스타일 */
+.edit-modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.edit-modal-content {
+    background: white; border-radius: 12px; width: 100%; max-width: 800px;
+    max-height: 90vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.edit-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; border-bottom: 1px solid #e0e0e0;
+}
+.edit-modal-header h2 { margin: 0; font-size: 18px; }
+.edit-modal-close {
+    background: none; border: none; font-size: 28px; cursor: pointer;
+    color: #666; line-height: 1; padding: 0 4px;
+}
+.edit-modal-close:hover { color: #333; }
+.edit-modal-body {
+    padding: 20px 24px; overflow-y: auto; flex: 1;
+}
+.edit-modal-info {
+    background: #e3f2fd; padding: 10px 16px; border-radius: 6px;
+    margin-bottom: 16px; font-size: 14px; color: #1565c0;
+}
+.edit-modal-footer {
+    padding: 16px 24px; border-top: 1px solid #e0e0e0;
+    display: flex; gap: 8px; flex-wrap: wrap;
+}
+.edit-modal-footer .btn { font-size: 13px; }
+@media (max-width: 768px) {
+    .edit-modal-content { max-width: 100%; }
+    .edit-modal-footer { flex-direction: column; }
+    .edit-modal-footer .btn { width: 100%; }
+}
+
 .search-select-wrap { position: relative; }
 .search-select-wrap input[type="text"] { width: 100%; }
 .search-dropdown {
